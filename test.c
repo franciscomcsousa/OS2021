@@ -7,6 +7,10 @@ void help(){
 	printf("what am I doing ?\n");
 }
 
+void testedois(){
+	printf("socorro\n");
+}
+
 int main(){
 	char buffer[127];
 	scanf("%s", buffer);
