@@ -16,6 +16,10 @@ void SO(){
 	printf("SO pain level is: 1%%\n");
 }
 
+/* Creates a segmentation fault error
+damn entao eh assim que se criam descricoes wow mlg 420
+360 no scope
+ */
 void explosion(){
 	char choice[127];
 	char bomb[2];
