@@ -31,7 +31,7 @@ void explosion(){
 		case 1:
 			*(int*)0 = 0;
 			break;
-		
+
 		case 2:
 			printf("get trolled\n");
 			*(int*)0 = 0;
@@ -55,7 +55,7 @@ int main(){
 	testedois();
 	SO();
 
-	explosion();
+	/*explosion();*/
 
 	free(text);
 	return EXIT_SUCCESS;
