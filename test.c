@@ -16,6 +16,10 @@ void SO(){
 	printf("SO pain level is: 1%%\n");
 }
 
+void testeEmWindows(){
+	printf("Windows\n");
+}
+
 /* Creates a segmentation fault error
 damn entao eh assim que se criam descricoes wow mlg 420
 360 no scope
