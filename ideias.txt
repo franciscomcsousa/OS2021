@@ -1,0 +1,30 @@
+No 1ºexercicio parecem haver 3 alteracoes:
+1 - ler de um ficheiro input
+2 - escrever num ficheiro output
+3/4 - paralelismo e sincronizacao
+
+
+alguns exemplos do funcionamento de ficheiros:
+
+FILE *fp;
+fp = fopen("teste.txt","r");   //retorna um file pointer do tipo FILE~
+
+if (fp == NULL){                          // boa pratica verificar erros
+    printf("teste.txt: No such file or directory\n");
+    // ou perror("teste.txt");
+    exit(1);
+} .
+
+fprintf(fp,"Hi file\n");  // escreve o testo no fp tambem funciona com %s e %d 
+
+for (i=0;i<100;i++)
+    fscanf(myfile, "f",&mydata[i]);   //exemplo de leitura de um ficheiro com numeros
+
+for(i=0;i<100;i++)
+    fprintf(myfile,"%d\n",i);
+
+fclose(fp);
+
+r - abre para leitura
+w - abre para escrita (se ja tiver conteudo ele eh esvaziado)
+a - abre para append
