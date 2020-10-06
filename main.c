@@ -35,11 +35,11 @@ void errorParse(){
     exit(EXIT_FAILURE);
 }
 
-void processInput(){
+void processInput(FILE *fp){
     char line[MAX_INPUT_SIZE];
 
     /* break loop with ^Z or ^D */
-    while (fgets(line, sizeof(line)/sizeof(char), stdin)) {
+    while (fgets(line, sizeof(line)/sizeof(char), fp)) {
         char token, type;
         char name[MAX_INPUT_SIZE];
 
@@ -81,7 +81,7 @@ void processInput(){
     }
 }
 
-void applyCommands(){
+void applyCommands(FILE *fp_output){
     while (numberCommands > 0){
         const char* command = removeCommand();
         if (command == NULL){
@@ -101,11 +101,11 @@ void applyCommands(){
             case 'c':
                 switch (type) {
                     case 'f':
-                        printf("Create file: %s\n", name);
+                        fprintf(fp_output,"Create file: %s\n", name);
                         create(name, T_FILE);
                         break;
                     case 'd':
-                        printf("Create directory: %s\n", name);
+                        fprintf(fp_output,"Create directory: %s\n", name);
                         create(name, T_DIRECTORY);
                         break;
                     default:
@@ -116,12 +116,12 @@ void applyCommands(){
             case 'l': 
                 searchResult = lookup(name);
                 if (searchResult >= 0)
-                    printf("Search: %s found\n", name);
+                    fprintf(fp_output,"Search: %s found\n", name);
                 else
-                    printf("Search: %s not found\n", name);
+                    fprintf(fp_output,"Search: %s not found\n", name);
                 break;
             case 'd':
-                printf("Delete: %s\n", name);
+                fprintf(fp_output,"Delete: %s\n", name);
                 delete(name);
                 break;
             default: { /* error */
@@ -132,14 +132,36 @@ void applyCommands(){
     }
 }
 
+FILE* processFile(char* path,char* param){
+    FILE *fp;
+
+    fp = fopen(path,param);
+
+    if (fp == NULL){                     
+        printf("teste.txt: No such file or directory\n");   
+        exit(EXIT_FAILURE);
+    }
+
+    return fp;
+}
+
 int main(int argc, char* argv[]) {
+
+    FILE *fp_input, *fp_output;
+
+    /* opens input and output file */
+    fp_input = processFile(argv[1],"r");
+    fp_output = processFile(argv[2],"w");
+
     /* init filesystem */
     init_fs();
 
     /* process input and print tree */
-    processInput();
-    applyCommands();
-    print_tecnicofs_tree(stdout);
+    processInput(fp_input);
+    fclose(fp_input);
+    applyCommands(fp_output);
+    print_tecnicofs_tree(fp_output);
+    fclose(fp_output);
 
     /* release allocated memory */
     destroy_fs();
