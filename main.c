@@ -138,7 +138,7 @@ FILE* processFile(char* path,char* param){
     fp = fopen(path,param);
 
     if (fp == NULL){                     
-        printf("teste.txt: No such file or directory\n");   
+        fprintf(stderr,"Error: invalid file\n");
         exit(EXIT_FAILURE);
     }
 
