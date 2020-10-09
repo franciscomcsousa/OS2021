@@ -9,6 +9,10 @@
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
 
+#define SYNCSTRAT1 "mutex"
+#define SYNCSTRAT2 "rwlock"
+#define SYNCSTRAT3 "nosync"
+
 int numberThreads = 0;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
@@ -87,7 +91,11 @@ void processInput(){
 }
 
 void applyCommands(){
-    gettimeofday(&t1,NULL);
+    
+    if (gettimeofday(&t1,NULL)){
+        fprintf(stderr, "Error: system time\n");
+        exit(EXIT_FAILURE);
+    }
 
     while (numberCommands > 0){
         const char* command = removeCommand();
@@ -137,19 +145,24 @@ void applyCommands(){
             }
         }
     }
-    gettimeofday(&t2,NULL);
+    if (gettimeofday(&t2,NULL)){
+        fprintf(stderr, "Error: system time\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 void processFiles(char* argv[]){
 
     fp_input = fopen(argv[1],"r");
-    fp_output = fopen(argv[2],"w");
 
     if (fp_input == NULL){                     
         fprintf(stderr,"Error: invalid input file\n");
         exit(EXIT_FAILURE);
     }
-    else if (fp_output == NULL){
+
+    fp_output = fopen(argv[2],"w");
+
+    if (fp_output == NULL){
         fprintf(stderr,"Error: invalid output file\n");
         exit(EXIT_FAILURE);
     }
@@ -161,11 +174,28 @@ void executionTime(struct timeval t1,struct timeval t2){
     printf("TecnicoFS completed in %.4f seconds.\n",time);
 }
 
+void verifyInput(int argc, char* argv[]){
+    if (argc != 5){
+        fprintf(stderr, "Error: invalid number of arguments\n");
+        exit(EXIT_FAILURE);
+    }
+    /*argv[3] refers to the number of threads*/
+    if (atoi(argv[3]) <= 0){
+        fprintf(stderr, "Error: invalid number of threads\n");
+        exit(EXIT_FAILURE);
+    }
+    /*argv[4] refers to the sync strategy*/
+    if (strcmp(argv[4], SYNCSTRAT1) && strcmp(argv[4], SYNCSTRAT2) && strcmp(argv[4], SYNCSTRAT3)){
+        fprintf(stderr, "Error: invalid sync strategy\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
 int main(int argc, char* argv[]) {
 
-    /* falta validar argv */
-    /* gettimeofday devolve -1 para fail e 0 para sucesso */
-
+    /* verifies the validity of argc and argv */
+    verifyInput(argc, argv);
+    
     /* opens input and output file */
     processFiles(argv);
 
