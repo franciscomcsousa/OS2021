@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "fs/operations.h"
+#include <sys/time.h>
 
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
@@ -13,6 +14,9 @@ int numberThreads = 0;
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
 int headQueue = 0;
+
+FILE *fp_input, *fp_output;
+struct timeval t1,t2;
 
 int insertCommand(char* data) {
     if(numberCommands != MAX_COMMANDS) {
@@ -35,11 +39,11 @@ void errorParse(){
     exit(EXIT_FAILURE);
 }
 
-void processInput(FILE *fp){
+void processInput(){
     char line[MAX_INPUT_SIZE];
 
     /* break loop with ^Z or ^D */
-    while (fgets(line, sizeof(line)/sizeof(char), fp)) {
+    while (fgets(line, sizeof(line)/sizeof(char), fp_input)) {
         char token, type;
         char name[MAX_INPUT_SIZE];
 
@@ -79,9 +83,12 @@ void processInput(FILE *fp){
             }
         }
     }
+    fclose(fp_input);
 }
 
-void applyCommands(FILE *fp_output){
+void applyCommands(){
+    gettimeofday(&t1,NULL);
+
     while (numberCommands > 0){
         const char* command = removeCommand();
         if (command == NULL){
@@ -101,11 +108,11 @@ void applyCommands(FILE *fp_output){
             case 'c':
                 switch (type) {
                     case 'f':
-                        fprintf(fp_output,"Create file: %s\n", name);
+                        printf("Create file: %s\n", name);
                         create(name, T_FILE);
                         break;
                     case 'd':
-                        fprintf(fp_output,"Create directory: %s\n", name);
+                        printf("Create directory: %s\n", name);
                         create(name, T_DIRECTORY);
                         break;
                     default:
@@ -116,12 +123,12 @@ void applyCommands(FILE *fp_output){
             case 'l': 
                 searchResult = lookup(name);
                 if (searchResult >= 0)
-                    fprintf(fp_output,"Search: %s found\n", name);
+                    printf("Search: %s found\n", name);
                 else
-                    fprintf(fp_output,"Search: %s not found\n", name);
+                    printf("Search: %s not found\n", name);
                 break;
             case 'd':
-                fprintf(fp_output,"Delete: %s\n", name);
+                printf("Delete: %s\n", name);
                 delete(name);
                 break;
             default: { /* error */
@@ -130,38 +137,51 @@ void applyCommands(FILE *fp_output){
             }
         }
     }
+    gettimeofday(&t2,NULL);
 }
 
-FILE* processFile(char* path,char* param){
-    FILE *fp;
+void processFiles(char* argv[]){
 
-    fp = fopen(path,param);
+    fp_input = fopen(argv[1],"r");
+    fp_output = fopen(argv[2],"w");
 
-    if (fp == NULL){                     
-        fprintf(stderr,"Error: invalid file\n");
+    if (fp_input == NULL){                     
+        fprintf(stderr,"Error: invalid input file\n");
         exit(EXIT_FAILURE);
     }
+    else if (fp_output == NULL){
+        fprintf(stderr,"Error: invalid output file\n");
+        exit(EXIT_FAILURE);
+    }
+}
 
-    return fp;
+void executionTime(struct timeval t1,struct timeval t2){
+
+    double time = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec)/1000000.0;
+    printf("TecnicoFS completed in %.4f seconds.\n",time);
 }
 
 int main(int argc, char* argv[]) {
 
-    FILE *fp_input, *fp_output;
+    /* falta validar argv */
+    /* gettimeofday devolve -1 para fail e 0 para sucesso */
 
     /* opens input and output file */
-    fp_input = processFile(argv[1],"r");
-    fp_output = processFile(argv[2],"w");
+    processFiles(argv);
 
     /* init filesystem */
     init_fs();
 
-    /* process input and print tree */
-    processInput(fp_input);
-    fclose(fp_input);
-    applyCommands(fp_output);
+    /* process input and print tree and execu */
+    processInput();
+    applyCommands();
+    executionTime(t1,t2);
     print_tecnicofs_tree(fp_output);
-    fclose(fp_output);
+
+    /*fechar input no fim do processInput() e fechar output no fim do print_tree()
+      boa ideia ? */
+    /* (temporario) tempo comeca a contar no inicio do applycommands e 
+       para de contar no fim */
 
     /* release allocated memory */
     destroy_fs();
