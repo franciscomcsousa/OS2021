@@ -1,0 +1,18 @@
+
+
+Onde colocar os locks ? 
+(Antes de uma funcaoes que mexe com globais ou dentro da propria funcao)
+
+Devemos usar dois locks/trincos mutex sendo um para o vetor de chamadas e o outro
+para o conteudo do FS ou podemos reutilizar o trinco do vetor de chamada ?
+
+podemos aceder a variaveis globais (declaradas no main) noutros ficheiros ?
+(fazer a declaracao de um trinco e inicia-lo no main e depois chama-lo para fazer
+lock dentro de outro ficheiro)
+
+
+   /*fechar input no fim do processInput() e fechar output no fim do print_tree()
+      boa ideia ? */
+      
+    /* (temporario) tempo comeca a contar no inicio do applycommands e 
+       para de contar no fim */

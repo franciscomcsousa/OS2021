@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include "fs/operations.h"
 #include <sys/time.h>
+#include <pthread.h>
 
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
@@ -18,6 +19,9 @@ int numberThreads = 0;
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
 int headQueue = 0;
+
+pthread_mutex_t mutex;
+pthread_rwlock_t rwl;
 
 FILE *fp_input, *fp_output;
 struct timeval t1,t2;
@@ -91,14 +95,11 @@ void processInput(){
 }
 
 void applyCommands(){
-    
-    if (gettimeofday(&t1,NULL)){
-        fprintf(stderr, "Error: system time\n");
-        exit(EXIT_FAILURE);
-    }
 
     while (numberCommands > 0){
+        pthread_mutex_lock(&mutex); 
         const char* command = removeCommand();
+        pthread_mutex_unlock(&mutex); 
         if (command == NULL){
             continue;
         }
@@ -145,10 +146,11 @@ void applyCommands(){
             }
         }
     }
-    if (gettimeofday(&t2,NULL)){
-        fprintf(stderr, "Error: system time\n");
-        exit(EXIT_FAILURE);
-    }
+}
+
+void *applyCommands_aux(){
+    applyCommands();
+    return NULL;
 }
 
 void processFiles(char* argv[]){
@@ -185,13 +187,36 @@ void verifyInput(int argc, char* argv[]){
         exit(EXIT_FAILURE);
     }
     /*argv[4] refers to the sync strategy*/
-    if (strcmp(argv[4], SYNCSTRAT1) && strcmp(argv[4], SYNCSTRAT2) && strcmp(argv[4], SYNCSTRAT3)){
+    if (strcmp(argv[4], "mutex") && strcmp(argv[4], "rwlock") && strcmp(argv[4], "nosync")){
         fprintf(stderr, "Error: invalid sync strategy\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (!strcmp(argv[4],"nosync") && atoi(argv[3]) != 1){
+        fprintf(stderr, "Error: invalid number of threads for nosync\n");
         exit(EXIT_FAILURE);
     }
 }
 
+void threadCreate(int numthreads){
+
+    pthread_t tid[6];
+
+    for(int i = 0; i < numberThreads; i++){
+        if(pthread_create(&tid[i], NULL, applyCommands_aux, NULL) != 0){
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    for (int i = 0; i < numberThreads; i++){
+        pthread_join(tid[i], NULL);
+    }
+}
+
 int main(int argc, char* argv[]) {
+
+    pthread_mutex_init(&mutex, NULL);
+    pthread_rwlock_init(&rwl, NULL);
 
     /* verifies the validity of argc and argv */
     verifyInput(argc, argv);
@@ -202,16 +227,26 @@ int main(int argc, char* argv[]) {
     /* init filesystem */
     init_fs();
 
-    /* process input and print tree and execu */
+    /* process input */
     processInput();
-    applyCommands();
+
+    /* starts timer */
+    if (gettimeofday(&t1,NULL)){
+        fprintf(stderr, "Error: system time\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /* creates pool of threads */
+    threadCreate(atoi(argv[3]));
+
+    /* ends timer */
+    if (gettimeofday(&t2,NULL)){
+        fprintf(stderr, "Error: system time\n");
+        exit(EXIT_FAILURE);
+    }
+
     executionTime(t1,t2);
     print_tecnicofs_tree(fp_output);
-
-    /*fechar input no fim do processInput() e fechar output no fim do print_tree()
-      boa ideia ? */
-    /* (temporario) tempo comeca a contar no inicio do applycommands e 
-       para de contar no fim */
 
     /* release allocated memory */
     destroy_fs();
