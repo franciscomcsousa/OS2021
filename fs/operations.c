@@ -1,4 +1,5 @@
 #include "operations.h"
+#include "sync.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -239,6 +240,7 @@ int delete(char *name){
  *     FAIL: otherwise
  */
 int lookup(char *name) {
+	
 	char full_path[MAX_FILE_NAME];
 	char delim[] = "/";
 

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "fs/operations.h"
+#include "fs/sync.h"
 #include <sys/time.h>
 #include <pthread.h>
 
@@ -14,14 +15,11 @@
 #define SYNCSTRAT2 "rwlock"
 #define SYNCSTRAT3 "nosync"
 
-int numberThreads = 0;
-
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
 int headQueue = 0;
 
-pthread_mutex_t mutex;
-pthread_rwlock_t rwl;
+extern pthread_mutex_t mutex;
 
 FILE *fp_input, *fp_output;
 struct timeval t1,t2;
@@ -95,9 +93,8 @@ void processInput(){
 }
 
 void applyCommands(){
-
     while (numberCommands > 0){
-        pthread_mutex_lock(&mutex); 
+        pthread_mutex_lock(&mutex);
         const char* command = removeCommand();
         pthread_mutex_unlock(&mutex); 
         if (command == NULL){
@@ -144,6 +141,7 @@ void applyCommands(){
                 fprintf(stderr, "Error: command to apply\n");
                 exit(EXIT_FAILURE);
             }
+
         }
     }
 }
@@ -198,25 +196,10 @@ void verifyInput(int argc, char* argv[]){
     }
 }
 
-void threadCreate(int numthreads){
-
-    pthread_t tid[6];
-
-    for(int i = 0; i < numberThreads; i++){
-        if(pthread_create(&tid[i], NULL, applyCommands_aux, NULL) != 0){
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    for (int i = 0; i < numberThreads; i++){
-        pthread_join(tid[i], NULL);
-    }
-}
-
 int main(int argc, char* argv[]) {
 
-    pthread_mutex_init(&mutex, NULL);
-    pthread_rwlock_init(&rwl, NULL);
+    /*argv[4] refers to the sync strat*/
+    initLock(argv[4]);
 
     /* verifies the validity of argc and argv */
     verifyInput(argc, argv);
@@ -237,7 +220,7 @@ int main(int argc, char* argv[]) {
     }
 
     /* creates pool of threads */
-    threadCreate(atoi(argv[3]));
+    threadCreate(atoi(argv[3]), applyCommands_aux);
 
     /* ends timer */
     if (gettimeofday(&t2,NULL)){
@@ -250,5 +233,7 @@ int main(int argc, char* argv[]) {
 
     /* release allocated memory */
     destroy_fs();
+
+    destroyLock();
     exit(EXIT_SUCCESS);
 }
