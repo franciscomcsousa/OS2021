@@ -16,3 +16,6 @@ lock dentro de outro ficheiro)
       
     /* (temporario) tempo comeca a contar no inicio do applycommands e 
        para de contar no fim */
+
+
+é necessario proteger um return ? (podemos colocar os locks dentro do removecommand para maior abs)

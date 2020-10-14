@@ -5,7 +5,6 @@
 #include <ctype.h>
 #include "fs/operations.h"
 #include "fs/sync.h"
-#include <sys/time.h>
 #include <pthread.h>
 
 #define MAX_COMMANDS 150000
@@ -22,7 +21,6 @@ int headQueue = 0;
 extern pthread_mutex_t mutex;
 
 FILE *fp_input, *fp_output;
-struct timeval t1,t2;
 
 int insertCommand(char* data) {
     if(numberCommands != MAX_COMMANDS) {
@@ -151,6 +149,11 @@ void *applyCommands_aux(){
     return NULL;
 }
 
+/**
+ * Opens input and output file.
+ * Input:
+ * - argv[]: array from stdin given by user
+*/
 void processFiles(char* argv[]){
 
     fp_input = fopen(argv[1],"r");
@@ -168,12 +171,12 @@ void processFiles(char* argv[]){
     }
 }
 
-void executionTime(struct timeval t1,struct timeval t2){
-
-    double time = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec)/1000000.0;
-    printf("TecnicoFS completed in %.4f seconds.\n",time);
-}
-
+/**
+ * Verifies the validity of the arguments given as input.
+ * Input:
+ * - argc: number of arguments given by user
+ * - argv[]: array from stdin given by user
+*/
 void verifyInput(int argc, char* argv[]){
     if (argc != 5){
         fprintf(stderr, "Error: invalid number of arguments\n");
@@ -198,14 +201,14 @@ void verifyInput(int argc, char* argv[]){
 
 int main(int argc, char* argv[]) {
 
-    /*argv[4] refers to the sync strat*/
-    initLock(argv[4]);
-
-    /* verifies the validity of argc and argv */
+    /* verifies given input */
     verifyInput(argc, argv);
-    
-    /* opens input and output file */
+
+    /* open given files */
     processFiles(argv);
+
+    /* inicializes locks for sync */
+    initLock(argv[4]);
 
     /* init filesystem */
     init_fs();
@@ -213,27 +216,17 @@ int main(int argc, char* argv[]) {
     /* process input */
     processInput();
 
-    /* starts timer */
-    if (gettimeofday(&t1,NULL)){
-        fprintf(stderr, "Error: system time\n");
-        exit(EXIT_FAILURE);
-    }
-
     /* creates pool of threads */
     threadCreate(atoi(argv[3]), applyCommands_aux);
 
-    /* ends timer */
-    if (gettimeofday(&t2,NULL)){
-        fprintf(stderr, "Error: system time\n");
-        exit(EXIT_FAILURE);
-    }
-
-    executionTime(t1,t2);
+    /* prints tree */
     print_tecnicofs_tree(fp_output);
 
     /* release allocated memory */
     destroy_fs();
 
+    /* destroy locks */
     destroyLock();
+
     exit(EXIT_SUCCESS);
 }
