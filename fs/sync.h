@@ -7,5 +7,7 @@ void initLock(char* syncstrat);
 void lock(char rw);
 void unlock();
 void destroyLock();
+void commandLock();
+void commandUnlock();
 
 #endif /* SYNC_H */

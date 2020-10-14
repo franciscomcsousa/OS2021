@@ -31,10 +31,14 @@ int insertCommand(char* data) {
 }
 
 char* removeCommand() {
+    commandLock();
     if(numberCommands > 0){
         numberCommands--;
-        return inputCommands[headQueue++];  
+        char* output = inputCommands[headQueue++];
+        commandUnlock();
+        return output;  
     }
+    commandUnlock();
     return NULL;
 }
 
@@ -92,9 +96,7 @@ void processInput(){
 
 void applyCommands(){
     while (numberCommands > 0){
-        pthread_mutex_lock(&mutex);
         const char* command = removeCommand();
-        pthread_mutex_unlock(&mutex); 
         if (command == NULL){
             continue;
         }

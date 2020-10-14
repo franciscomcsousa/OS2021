@@ -33,7 +33,7 @@ void threadCreate(int numthreads, void* function){
     pthread_t* tid = (pthread_t*) malloc(sizeof(pthread_t) * numthreads);
 
     /* starts timer */
-    if (gettimeofday(&t1,NULL)){
+    if (gettimeofday(&t1,NULL) != 0){
         fprintf(stderr, "Error: system time\n");
         exit(EXIT_FAILURE);
     }
@@ -55,7 +55,7 @@ void threadCreate(int numthreads, void* function){
     free(tid);
 
     /* ends timer */
-    if (gettimeofday(&t2,NULL)){
+    if (gettimeofday(&t2,NULL) != 0){
         fprintf(stderr, "Error: system time\n");
         exit(EXIT_FAILURE);
     }
@@ -72,18 +72,18 @@ void initLock(char* syncstrat){
 
     gStrat = syncstrat;
 
-    if (pthread_mutex_init(&mutex, NULL)){
-        fprintf(stderr, "Error: mutex error\n");
+    if (pthread_mutex_init(&mutex, NULL) != 0){
+        fprintf(stderr, "Error: mutex create error\n");
         exit(EXIT_FAILURE);
-    };
+    }
 
     if (!strcmp(syncstrat, "nosync")) 
         return;
 
-    if (pthread_rwlock_init(&rwl, NULL) && !strcmp(syncstrat, "rwlock")){
-        fprintf(stderr, "Error: rwlock error\n");
+    if (pthread_rwlock_init(&rwl, NULL) !=0 && !strcmp(syncstrat, "rwlock")){
+        fprintf(stderr, "Error: rwlock create error\n");
         exit(EXIT_FAILURE);
-    };
+    }
 }
 
 /**
@@ -92,43 +92,87 @@ void initLock(char* syncstrat){
  *   - rw: type of rwlock, either read or write
  */
 void lock(char rw){
-    if (strcmp("nosync", gStrat)) 
+    if (!strcmp("nosync", gStrat)) 
         return;
 
-    if (strcmp("rwlock", gStrat)){
-        if (rw == 'w')
-            pthread_rwlock_wrlock(&rwl);
-        else if (rw == 'r') 
-            pthread_rwlock_rdlock(&rwl);
-
+    if (!strcmp("rwlock", gStrat)){
+        if (rw == 'w'){
+            if(pthread_rwlock_wrlock(&rwl) != 0){
+                fprintf(stderr, "Error: wrlock lock error\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+        else if (rw == 'r'){ 
+            if(pthread_rwlock_rdlock(&rwl) != 0){
+                fprintf(stderr, "Error: rdlock lock error\n");
+                exit(EXIT_FAILURE);
+            }
+        }
         return;
     }
 
-    if (strcmp("mutex", gStrat)) 
-        pthread_mutex_lock(&mutex);
+    if (!strcmp("mutex", gStrat)){
+        if(pthread_mutex_lock(&mutex) != 0){
+            fprintf(stderr, "Error: mutex lock error\n");
+            exit(EXIT_FAILURE);
+        }
+    }
 }
 
 /**
  * Unlocks a thread lock.
 */
 void unlock(){
-    if (strcmp("nosync", gStrat)) 
+    if (!strcmp("nosync", gStrat)) 
         return;
 
-    if (strcmp("rwlock", gStrat)) 
-        pthread_rwlock_unlock(&rwl);
-
-    if (strcmp("mutex", gStrat)) 
-        pthread_mutex_unlock(&mutex);
+    if (!strcmp("rwlock", gStrat)){
+        if(pthread_rwlock_unlock(&rwl) != 0){
+            fprintf(stderr, "Error: rwlock unlock error\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    if (!strcmp("mutex", gStrat)){
+        if(pthread_mutex_unlock(&mutex) != 0){
+            fprintf(stderr, "Error: mutex unlock error\n");
+            exit(EXIT_FAILURE);
+        }
+    }
 }
 
 /**
- * Destroys created locks
+ * Destroys created locks.
 */
 void destroyLock(){
-    if (strcmp("rwlock", gStrat))
-        pthread_rwlock_destroy(&rwl);
-
+    if (!strcmp("rwlock", gStrat)){
+        if(pthread_rwlock_destroy(&rwl) != 0){
+            fprintf(stderr, "Error: rwlock destroy error\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    
     /* always created for removeCommand() and therefore always destroyed */
-    pthread_mutex_destroy(&mutex);
+    if(pthread_mutex_destroy(&mutex) != 0){
+        fprintf(stderr, "Error: mutex destroy error\n");
+        exit(EXIT_FAILURE);
+    }
+}
+/**
+ * Locks the mutex used to remove a command from the inputCommands[][].
+*/
+void commandLock(){
+    if(pthread_mutex_lock(&mutex) != 0){
+        fprintf(stderr, "Error: mutex lock error\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+/**
+ * Unlocks the mutex used to remove a command from the inputCommands[][].
+*/
+void commandUnlock(){
+    if(pthread_mutex_unlock(&mutex) != 0){
+        fprintf(stderr, "Error: mutex unlock error\n");
+        exit(EXIT_FAILURE);
+    }
 }
