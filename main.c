@@ -95,10 +95,10 @@ void processInput(){
 }
 
 void applyCommands(){
-    while (numberCommands > 0){
+    while (1){
         const char* command = removeCommand();
         if (command == NULL){
-            continue;
+            break;
         }
 
         char token, type;
@@ -114,12 +114,16 @@ void applyCommands(){
             case 'c':
                 switch (type) {
                     case 'f':
+                        lock('w');
                         printf("Create file: %s\n", name);
                         create(name, T_FILE);
+                        unlock();
                         break;
                     case 'd':
+                        lock('w');
                         printf("Create directory: %s\n", name);
                         create(name, T_DIRECTORY);
+                        unlock();
                         break;
                     default:
                         fprintf(stderr, "Error: invalid node type\n");
@@ -127,21 +131,24 @@ void applyCommands(){
                 }
                 break;
             case 'l': 
+                lock('r');
                 searchResult = lookup(name);
                 if (searchResult >= 0)
                     printf("Search: %s found\n", name);
                 else
                     printf("Search: %s not found\n", name);
+                unlock();
                 break;
             case 'd':
+                lock('w');
                 printf("Delete: %s\n", name);
                 delete(name);
+                unlock();
                 break;
             default: { /* error */
                 fprintf(stderr, "Error: command to apply\n");
                 exit(EXIT_FAILURE);
             }
-
         }
     }
 }
