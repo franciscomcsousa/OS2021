@@ -3,16 +3,12 @@
 #include <getopt.h>
 #include <string.h>
 #include <ctype.h>
+#include <pthread.h>
 #include "fs/operations.h"
 #include "fs/sync.h"
-#include <pthread.h>
 
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
-
-#define SYNCSTRAT1 "mutex"
-#define SYNCSTRAT2 "rwlock"
-#define SYNCSTRAT3 "nosync"
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
@@ -160,8 +156,7 @@ void *applyCommands_aux(){
 
 /**
  * Opens input and output file.
- * Input:
- * - argv[]: array from stdin given by user
+ * @param argv[]: array from stdin given by user
 */
 void processFiles(char* argv[]){
 
@@ -182,9 +177,8 @@ void processFiles(char* argv[]){
 
 /**
  * Verifies the validity of the arguments given as input.
- * Input:
- * - argc: number of arguments given by user
- * - argv[]: array from stdin given by user
+ * @param argc: number of arguments given by user
+ * @param argv[]: array from stdin given by user
 */
 void verifyInput(int argc, char* argv[]){
     if (argc != 5){
