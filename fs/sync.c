@@ -65,32 +65,6 @@ void threadCreate(int numthreads, void* function){
 }
 
 /**
- * Inicializes the necessary locks.
- * @param syncstrat: sync strategy chosen by user
- */
-void initLock(char* syncstrat){
-
-    gStrat = syncstrat;
-
-    if (!strcmp("nosync",syncstrat)) 
-        return;
-
-    if (!strcmp("mutex",syncstrat)){
-        if (pthread_mutex_init(&mutex, NULL) != 0){
-            fprintf(stderr, "Error: mutex create error\n");
-            exit(EXIT_FAILURE);
-        }
-    }    
-
-    if(!strcmp("rwlock",syncstrat)){
-        if (pthread_rwlock_init(&rwl, NULL) !=0){
-            fprintf(stderr, "Error: rwlock create error\n");
-            exit(EXIT_FAILURE);
-        }
-    }
-}
-
-/**
  * Locks a thread lock.
  * @param rw: type of rwlock, either read ('r') or write ('w')
  */
@@ -149,48 +123,3 @@ void unlock(){
     }
 }
 
-/**
- * Destroys created locks.
-*/
-void destroyLock(){
-
-    if (!strcmp("rwlock", gStrat)){
-        if(pthread_rwlock_destroy(&rwl) != 0){
-            fprintf(stderr, "Error: rwlock destroy error\n");
-            exit(EXIT_FAILURE);
-        }
-    }
-    
-    if (!strcmp("mutex", gStrat)){
-        if(pthread_mutex_destroy(&mutex) != 0){
-            fprintf(stderr, "Error: mutex destroy error\n");
-            exit(EXIT_FAILURE);
-        }
-    }
-}
-
-/**
- * Locks the mutex lock used in removeCommand().
-*/
-void commandLock(){
-
-    if(!strcmp("rwlock",gStrat) || !strcmp("mutex",gStrat)){
-        if(pthread_mutex_lock(&mutex) != 0){
-            fprintf(stderr, "Error: mutex lock error\n");
-            exit(EXIT_FAILURE);
-        }
-    }
-}
-
-/**
- * Unlocks the mutex lock used in removeCommand().
-*/
-void commandUnlock(){
-
-    if(!strcmp("rwlock",gStrat) || !strcmp("mutex",gStrat)){
-        if(pthread_mutex_unlock(&mutex) != 0){
-            fprintf(stderr, "Error: mutex unlock error\n");
-            exit(EXIT_FAILURE);
-        }
-    }
-}

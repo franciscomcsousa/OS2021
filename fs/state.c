@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <pthread.h>
 #include "state.h"
 #include "../tecnicofs-api-constants.h"
 
@@ -23,6 +24,10 @@ void inode_table_init() {
         inode_table[i].nodeType = T_NONE;
         inode_table[i].data.dirEntries = NULL;
         inode_table[i].data.fileContents = NULL;
+        if (pthread_rwlock_init(&inode_table[i].rwl, NULL) !=0){
+            fprintf(stderr, "Error: rwlock create error\n");
+            exit(EXIT_FAILURE);
+        }
     }
 }
 
@@ -32,11 +37,15 @@ void inode_table_init() {
 
 void inode_table_destroy() {
     for (int i = 0; i < INODE_TABLE_SIZE; i++) {
+        if(pthread_rwlock_destroy(&inode_table[i].rwl) != 0){
+            fprintf(stderr, "Error: rwlock destroy error\n");
+            exit(EXIT_FAILURE);
+        }
         if (inode_table[i].nodeType != T_NONE) {
             /* as data is an union, the same pointer is used for both dirEntries and fileContents */
             /* just release one of them */
-	  if (inode_table[i].data.dirEntries)
-            free(inode_table[i].data.dirEntries);
+	        if (inode_table[i].data.dirEntries)
+                free(inode_table[i].data.dirEntries);
         }
     }
 }
@@ -229,4 +238,25 @@ void inode_print_tree(FILE *fp, int inumber, char *name) {
             }
         }
     }
+}
+
+/*
+ * Copies the lock of the i-node into the arguments.
+ * Only the fields referenced by non-null arguments are copied.
+ * Input:
+ *  - inumber: identifier of the i-node
+ *  - lock: pointer to lock
+ * Returns: SUCCESS or FAIL
+ */
+int inode_get_lock(int inumber, pthread_rwlock_t *lock) {
+
+    if ((inumber < 0) || (inumber > INODE_TABLE_SIZE) || (inode_table[inumber].nodeType == T_NONE)) {
+        printf("inode_get: invalid inumber %d\n", inumber);
+        return FAIL;
+    }
+
+    if (lock)
+        *lock = inode_table[inumber].rwl;
+
+    return SUCCESS;
 }

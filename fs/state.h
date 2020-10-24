@@ -41,6 +41,7 @@ union Data {
 typedef struct inode_t {    
 	type nodeType;
 	union Data data;
+	pthread_rwlock_t rwl;
     /* more i-node attributes will be added in future exercises */
 } inode_t;
 
@@ -56,5 +57,6 @@ int dir_reset_entry(int inumber, int sub_inumber);
 int dir_add_entry(int inumber, int sub_inumber, char *sub_name);
 void inode_print_tree(FILE *fp, int inumber, char *name);
 
+int inode_get_lock(int inumber, pthread_rwlock_t *lock);
 
 #endif /* INODES_H */

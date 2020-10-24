@@ -14,8 +14,6 @@ char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
 int headQueue = 0;
 
-extern pthread_mutex_t mutex;
-
 FILE *fp_input, *fp_output;
 
 int insertCommand(char* data) {
@@ -27,14 +25,10 @@ int insertCommand(char* data) {
 }
 
 char* removeCommand() {
-    commandLock();
     if(numberCommands > 0){
         numberCommands--;
-        char* output = inputCommands[headQueue++];
-        commandUnlock();
-        return output;  
+        return inputCommands[headQueue++];  
     }
-    commandUnlock();
     return NULL;
 }
 
@@ -110,16 +104,12 @@ void applyCommands(){
             case 'c':
                 switch (type) {
                     case 'f':
-                        lock('w');
                         printf("Create file: %s\n", name);
                         create(name, T_FILE);
-                        unlock();
                         break;
                     case 'd':
-                        lock('w');
                         printf("Create directory: %s\n", name);
                         create(name, T_DIRECTORY);
-                        unlock();
                         break;
                     default:
                         fprintf(stderr, "Error: invalid node type\n");
@@ -127,19 +117,15 @@ void applyCommands(){
                 }
                 break;
             case 'l': 
-                lock('r');
                 searchResult = lookup(name);
                 if (searchResult >= 0)
                     printf("Search: %s found\n", name);
                 else
                     printf("Search: %s not found\n", name);
-                unlock();
                 break;
             case 'd':
-                lock('w');
                 printf("Delete: %s\n", name);
                 delete(name);
-                unlock();
                 break;
             default: { /* error */
                 fprintf(stderr, "Error: command to apply\n");
@@ -181,23 +167,13 @@ void processFiles(char* argv[]){
  * @param argv[]: array from stdin given by user
 */
 void verifyInput(int argc, char* argv[]){
-    if (argc != 5){
+    if (argc != 4){
         fprintf(stderr, "Error: invalid number of arguments\n");
         exit(EXIT_FAILURE);
     }
     /*argv[3] refers to the number of threads*/
     if (atoi(argv[3]) <= 0){
         fprintf(stderr, "Error: invalid number of threads\n");
-        exit(EXIT_FAILURE);
-    }
-    /*argv[4] refers to the sync strategy*/
-    if (strcmp(argv[4], "mutex") && strcmp(argv[4], "rwlock") && strcmp(argv[4], "nosync")){
-        fprintf(stderr, "Error: invalid sync strategy\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if (!strcmp(argv[4],"nosync") && atoi(argv[3]) != 1){
-        fprintf(stderr, "Error: invalid number of threads for nosync\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -210,26 +186,22 @@ int main(int argc, char* argv[]) {
     /* open given files */
     processFiles(argv);
 
-    /* inicializes locks for sync */
-    initLock(argv[4]);
-
     /* init filesystem */
     init_fs();
 
     /* process input */
     processInput();
 
+    applyCommands();
+
     /* creates pool of threads */
-    threadCreate(atoi(argv[3]), applyCommands_aux);
+    //threadCreate(atoi(argv[3]), applyCommands_aux);
 
     /* prints tree */
     print_tecnicofs_tree(fp_output);
 
     /* release allocated memory */
     destroy_fs();
-
-    /* destroy locks */
-    destroyLock();
 
     exit(EXIT_SUCCESS);
 }
