@@ -15,6 +15,7 @@ int numberCommands = 0;
 int headQueue = 0;
 
 FILE *fp_input, *fp_output;
+extern pthread_mutex_t mutex;
 
 int insertCommand(char* data) {
     if(numberCommands != MAX_COMMANDS) {
@@ -25,10 +26,14 @@ int insertCommand(char* data) {
 }
 
 char* removeCommand() {
+    commandLock();
     if(numberCommands > 0){
         numberCommands--;
-        return inputCommands[headQueue++];  
+        char* output = inputCommands[headQueue++];
+        commandUnlock();
+        return output;  
     }
+    commandUnlock();
     return NULL;
 }
 
@@ -186,22 +191,26 @@ int main(int argc, char* argv[]) {
     /* open given files */
     processFiles(argv);
 
+    /* inicializes locks for sync */
+    initLock();
+
     /* init filesystem */
     init_fs();
 
     /* process input */
     processInput();
 
-    applyCommands();
-
     /* creates pool of threads */
-    //threadCreate(atoi(argv[3]), applyCommands_aux);
+    threadCreate(atoi(argv[3]), applyCommands_aux);
 
     /* prints tree */
     print_tecnicofs_tree(fp_output);
 
     /* release allocated memory */
     destroy_fs();
+
+    /* destroy locks */
+    destroyLock();
 
     exit(EXIT_SUCCESS);
 }

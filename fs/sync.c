@@ -65,6 +65,18 @@ void threadCreate(int numthreads, void* function){
 }
 
 /**
+ * Inicializes the necessary locks.
+ * @param syncstrat: sync strategy chosen by user
+ */
+void initLock(){
+
+    if (pthread_mutex_init(&mutex, NULL) != 0){
+        fprintf(stderr, "Error: mutex create error\n");
+        exit(EXIT_FAILURE);
+    }   
+}
+
+/**
  * Locks a thread lock.
  * @param rw: type of rwlock, either read ('r') or write ('w')
  */
@@ -103,7 +115,7 @@ void lock(char rw){
 /**
  * Unlocks a thread lock.
 */
-void unlock(){
+void kunlock(){
 
     if (!strcmp("nosync", gStrat)) 
         return;
@@ -120,6 +132,39 @@ void unlock(){
             fprintf(stderr, "Error: mutex unlock error\n");
             exit(EXIT_FAILURE);
         }
+    }
+}
+
+/**
+ * Destroys created locks.
+*/
+void destroyLock(){
+
+    if(pthread_mutex_destroy(&mutex) != 0){
+        fprintf(stderr, "Error: mutex destroy error\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+/**
+ * Locks the mutex lock used in removeCommand().
+*/
+void commandLock(){
+
+    if(pthread_mutex_lock(&mutex) != 0){
+        fprintf(stderr, "Error: mutex lock error\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+/**
+ * Unlocks the mutex lock used in removeCommand().
+*/
+void commandUnlock(){
+
+    if(pthread_mutex_unlock(&mutex) != 0){
+        fprintf(stderr, "Error: mutex unlock error\n");
+        exit(EXIT_FAILURE);
     }
 }
 

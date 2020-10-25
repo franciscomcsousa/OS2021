@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
 
 /* Given a path, fills pointers with strings for the parent path and child
  * file name
@@ -267,6 +268,79 @@ int lookup(char *name) {
 	return current_inumber;
 }
 
+
+
+/**
+ * Problemas:
+ * dar lock/unlock duas vezes ao mesmo inode
+*/
+int lockup(char* name, int* array, char arg){
+
+    char full_path[MAX_FILE_NAME];
+    char delim[] = "/";
+
+    int counter = 0;
+
+    int current_inumber = FS_ROOT;
+
+    array[counter++] = current_inumber;
+
+    type nType;
+    union Data data;
+    pthread_rwlock_t current_lock;
+
+    inode_get_lock(current_inumber, &current_lock);
+    if(pthread_rwlock_rdlock(&current_lock) != 0){
+        fprintf(stderr, "Error: rdlock lock error\n");
+        exit(EXIT_FAILURE);
+    }
+
+    inode_get(current_inumber, &nType, &data);
+
+	strcpy(full_path, name);
+    char* path = strtok(full_path, delim);
+
+    while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {
+
+        inode_get_lock(current_inumber, &current_lock);
+		if(pthread_rwlock_rdlock(&current_lock) != 0){
+        	fprintf(stderr, "Error: rdlock lock error\n");
+        	exit(EXIT_FAILURE);
+    	}
+		array[counter++] = current_inumber;
+
+        inode_get(current_inumber, &nType, &data);
+        path = strtok(NULL, delim);
+    }
+
+	if(arg == 'w'){
+		for(int i=0;i<2;i++){
+			inode_get_lock(array[counter-i],&current_lock);
+			if(pthread_rwlock_unlock(&current_lock) != 0){
+            	fprintf(stderr, "Error: rwlock unlock error\n");
+            	exit(EXIT_FAILURE);
+        	}
+			if(pthread_rwlock_wrlock(&current_lock) != 0){
+                fprintf(stderr, "Error: wrlock lock error\n");
+                exit(EXIT_FAILURE);
+            }
+		}
+	}
+	return counter;
+}
+
+void unlock(int* array, int counter){
+
+    pthread_rwlock_t current_lock;
+
+	for(;counter>=0;counter--){
+		inode_get_lock(array[counter],&current_lock);
+		if(pthread_rwlock_unlock(&current_lock) != 0){
+            fprintf(stderr, "Error: rwlock unlock error\n");
+            exit(EXIT_FAILURE);
+        }
+	}
+}
 
 /*
  * Prints tecnicofs tree.
