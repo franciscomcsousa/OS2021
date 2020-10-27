@@ -95,3 +95,32 @@ criar um lookup
 
 
 
+
+DUVIDAS-------------------------
+
+/*     c a/b/c/e  f */
+/*     c a/b/c/d  f */
+
+a primeira operacao da lock ate ao fim.
+a segunda operacao vai estar a dar lock ate ao c e fica a espera ( correto ? )
+quando a primeira operacao der unlock aos seus inode anteriores estará tambem da dar unlock aos inodes da segunda thread que ja foram locked ?
+
+c a/b/c/e
+(a,b,c,e) locked
+
+c a/b/c/d
+(a,b) locked
+(c) waiting        ou fica à espera no a ?
+
+c a/b/c/e
+(a,b,c,e) unlocked
+
+c a/b/c/d
+(a,b) locked -------> passa para unlocked ?
+(c,d) locked
+
+
+ALSO
+
+como conseguir dar lock ao proximo inode (na funcao create)
+ou seja damos lock até à diretoria em que o ficheiro vai ser criado mas depois como é que sabemos o inode do ficheiro antes deste ser criado ?

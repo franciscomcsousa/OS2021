@@ -123,7 +123,19 @@ int create(char *name, type nodeType){
 	type pType;
 	union Data pdata;
 
+	//---------------------------
+	int* array;
+	int size;
+	char teste[MAX_FILE_NAME];
+	strcpy(teste, name);
+	//------------------------------
+
 	strcpy(name_copy, name);
+
+	//---------------
+	size = lockup(teste,array,'w');
+	//---------------
+
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
 
 	parent_inumber = lookup(parent_name);
@@ -244,6 +256,7 @@ int lookup(char *name) {
 	
 	char full_path[MAX_FILE_NAME];
 	char delim[] = "/";
+	char *saveptr;
 
 	strcpy(full_path, name);
 
@@ -257,27 +270,42 @@ int lookup(char *name) {
 	/* get root inode data */
 	inode_get(current_inumber, &nType, &data);
 
-	char *path = strtok(full_path, delim);
+	char *path = strtok_r(full_path, delim,&saveptr);
 
 	/* search for all sub nodes */
 	while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {
 		inode_get(current_inumber, &nType, &data);
-		path = strtok(NULL, delim);
+		path = strtok_r(NULL, delim, &saveptr);
 	}
 
 	return current_inumber;
 }
 
-
+/*     c a/b/c/e  f */
+/*     c a/b/c/d  f */
+/*     c a/b/c/   d */
+/*     c a/b/     d */
+/*     c a/b        */
+/*     c a          */
 
 /**
- * Problemas:
- * dar lock/unlock duas vezes ao mesmo inode
+ * Count number of char c in string path.
 */
+int countChar(char* path,char c){
+	int count = 0;
+
+	for(int i=0; path[i]!='\0'; i++){
+		if(path[i] == c)
+			count++;
+	}
+	return count;
+}
+
 int lockup(char* name, int* array, char arg){
 
     char full_path[MAX_FILE_NAME];
     char delim[] = "/";
+	char *saveptr;
 
     int counter = 0;
 
@@ -289,43 +317,58 @@ int lockup(char* name, int* array, char arg){
     union Data data;
     pthread_rwlock_t current_lock;
 
-    inode_get_lock(current_inumber, &current_lock);
-    if(pthread_rwlock_rdlock(&current_lock) != 0){
-        fprintf(stderr, "Error: rdlock lock error\n");
-        exit(EXIT_FAILURE);
-    }
-
-    inode_get(current_inumber, &nType, &data);
-
 	strcpy(full_path, name);
-    char* path = strtok(full_path, delim);
+	int nslash = countChar(full_path,'/'); 
 
-    while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {
-
-        inode_get_lock(current_inumber, &current_lock);
+	if(arg == 'r' || nslash > 0){                 /*If 'r' all files are rdlock. If number of slashs > 0 no changes will be made inside root directory*/
+		inode_get_lock(current_inumber, &current_lock);
 		if(pthread_rwlock_rdlock(&current_lock) != 0){
-        	fprintf(stderr, "Error: rdlock lock error\n");
-        	exit(EXIT_FAILURE);
-    	}
+			fprintf(stderr, "Error: rdlock lock error\n");
+			exit(EXIT_FAILURE);
+		}
+
+		printf("ROOT NOT LOCKED\n");
+	}
+	else if (nslash == 0){                         /*If number of slash == 0 means changes will be made inside root directory*/       
+		inode_get_lock(current_inumber, &current_lock);
+		if(pthread_rwlock_wrlock(&current_lock) != 0){
+			fprintf(stderr, "Error: wrlock lock error\n");
+			exit(EXIT_FAILURE);
+		}
+
+		printf("ROOT LOCKED\n");
+	}
+	
+	inode_get(current_inumber, &nType, &data);
+    char* path = strtok_r(full_path, delim,&saveptr);     
+
+    while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {  
+
+		if(nslash >= 2 || arg == 'r'){          
+			inode_get_lock(current_inumber, &current_lock);
+			if(pthread_rwlock_rdlock(&current_lock) != 0){
+				fprintf(stderr, "Error: rdlock lock error\n");
+				exit(EXIT_FAILURE);
+			}
+			printf("READ LOCKED %s\n",path);
+
+		}
+		else{                                     /*Write locks diretory where file/directory will be created*/
+			inode_get_lock(current_inumber, &current_lock);
+			if(pthread_rwlock_wrlock(&current_lock) != 0){
+				fprintf(stderr, "Error: wrlock lock error\n");
+				exit(EXIT_FAILURE);
+			}
+			printf("WRITE LOCKED %s\n",path);
+		}
+
 		array[counter++] = current_inumber;
 
         inode_get(current_inumber, &nType, &data);
-        path = strtok(NULL, delim);
-    }
+        path = strtok_r(NULL, delim,&saveptr);
 
-	if(arg == 'w'){
-		for(int i=0;i<2;i++){
-			inode_get_lock(array[counter-i],&current_lock);
-			if(pthread_rwlock_unlock(&current_lock) != 0){
-            	fprintf(stderr, "Error: rwlock unlock error\n");
-            	exit(EXIT_FAILURE);
-        	}
-			if(pthread_rwlock_wrlock(&current_lock) != 0){
-                fprintf(stderr, "Error: wrlock lock error\n");
-                exit(EXIT_FAILURE);
-            }
-		}
-	}
+		nslash--;
+    }
 	return counter;
 }
 
