@@ -191,10 +191,7 @@ int main(int argc, char* argv[]) {
     /* open given files */
     processFiles(argv);
 
-    /* inicializes locks for sync */
-    initLock();
-
-    /* init filesystem */
+    /* init filesystem and locks */
     init_fs();
 
     /* process input */
@@ -206,11 +203,8 @@ int main(int argc, char* argv[]) {
     /* prints tree */
     print_tecnicofs_tree(fp_output);
 
-    /* release allocated memory */
+    /* release allocated memory and destroys locks*/
     destroy_fs();
-
-    /* destroy locks */
-    destroyLock();
 
     exit(EXIT_SUCCESS);
 }

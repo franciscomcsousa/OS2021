@@ -7,6 +7,7 @@
 #include "../tecnicofs-api-constants.h"
 
 inode_t inode_table[INODE_TABLE_SIZE];
+pthread_rwlock_t lock; /*Used to prevent conflits while creating a new inode with inode_create()*/
 
 /*
  * Sleeps for synchronization testing.
@@ -20,6 +21,13 @@ void insert_delay(int cycles) {
  * Initializes the i-nodes table.
  */
 void inode_table_init() {
+
+    /*lock for inode_create*/
+    if(pthread_rwlock_init(&lock,NULL) != 0){          
+        fprintf(stderr, "Error: rwlock create error\n");
+        exit(EXIT_FAILURE);
+    }
+
     for (int i = 0; i < INODE_TABLE_SIZE; i++) {
         inode_table[i].nodeType = T_NONE;
         inode_table[i].data.dirEntries = NULL;
@@ -36,6 +44,13 @@ void inode_table_init() {
  */
 
 void inode_table_destroy() {
+
+    /*lock for inode_create*/
+    if(pthread_rwlock_destroy(&lock) != 0){
+        fprintf(stderr, "Error: rwlock destroy error\n");
+        exit(EXIT_FAILURE);
+    }
+
     for (int i = 0; i < INODE_TABLE_SIZE; i++) {
         if(pthread_rwlock_destroy(&inode_table[i].rwl) != 0){
             fprintf(stderr, "Error: rwlock destroy error\n");
@@ -62,6 +77,11 @@ int inode_create(type nType) {
     /* Used for testing synchronization speedup */
     insert_delay(DELAY);
 
+    if(pthread_rwlock_wrlock(&lock) != 0){
+			fprintf(stderr, "Error: wrlock lock error\n");
+			exit(EXIT_FAILURE);
+	}
+
     for (int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++) {
         if (inode_table[inumber].nodeType == T_NONE) {
             inode_table[inumber].nodeType = nType;
@@ -77,8 +97,16 @@ int inode_create(type nType) {
             else {
                 inode_table[inumber].data.fileContents = NULL;
             }
+            if(pthread_rwlock_unlock(&lock) != 0){
+                fprintf(stderr, "Error: rwlock unlock error\n");
+                exit(EXIT_FAILURE);
+            }
             return inumber;
         }
+    }
+    if(pthread_rwlock_unlock(&lock) != 0){
+        fprintf(stderr, "Error: rwlock unlock error\n");
+        exit(EXIT_FAILURE);
     }
     return FAIL;
 }
