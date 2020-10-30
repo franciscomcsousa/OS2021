@@ -130,6 +130,11 @@ int inode_delete(int inumber) {
     /* see inode_table_destroy function */
     if (inode_table[inumber].data.dirEntries)
         free(inode_table[inumber].data.dirEntries);
+
+    if(pthread_rwlock_unlock(&inode_table[inumber].rwl) != 0){
+        fprintf(stderr, "Error: rwlock unlock error\n");
+        exit(EXIT_FAILURE);
+    }
     return SUCCESS;
 }
 
@@ -279,7 +284,7 @@ void inode_print_tree(FILE *fp, int inumber, char *name) {
 int inode_get_lock(int inumber, pthread_rwlock_t *lock) {
 
     if ((inumber < 0) || (inumber > INODE_TABLE_SIZE) || (inode_table[inumber].nodeType == T_NONE)) {
-        printf("inode_get: invalid inumber %d\n", inumber);
+        printf("inode_get_lock: invalid inumber %d\n", inumber);
         return FAIL;
     }
 

@@ -198,6 +198,7 @@ int delete(char *name){
 	int size;
 	char path[MAX_FILE_NAME];
 	int locked_inodes[INODE_TABLE_SIZE];
+	pthread_rwlock_t rwl;
 
 	strcpy(path, name);
 	size = lockup(path,locked_inodes,'w');
@@ -225,6 +226,12 @@ int delete(char *name){
 
 	child_inumber = lookup_sub_node(child_name, pdata.dirEntries);
 
+	inode_get_lock(child_inumber,&rwl);
+	if(pthread_rwlock_wrlock(&rwl) != 0){
+			fprintf(stderr, "Error: wrlock lock error\n");
+			exit(EXIT_FAILURE);
+	}
+
 	if (child_inumber == FAIL) {
 		printf("could not delete %s, does not exist in dir %s\n",
 		       name, parent_name);
@@ -249,14 +256,14 @@ int delete(char *name){
 		return FAIL;
 	}
 
-	if (inode_delete(child_inumber) == FAIL) {
+	if (inode_delete(child_inumber) == FAIL) {    // unlocks the inode deleted
 		printf("could not delete inode number %d from dir %s\n",
 		       child_inumber, parent_name);
 		unlock(locked_inodes,size);
 		return FAIL;
 	}
-
-	unlock(locked_inodes,size);
+	
+	unlock(locked_inodes,size-1);  //size-1 because deleted inode already unlocked
 	return SUCCESS;
 }
 
@@ -327,6 +334,12 @@ int countChar(char* path,char c){
 }
 
 /**
+ * fclose()
+ * deviamos ter 2 mutexs em vez de apenas 1
+*/
+
+
+/**
  * Locks inodes involved in the operation.
  * @param name is the path where file will be created/destroyed/found
  * @param array is the array of inode_number that will be locked
@@ -359,7 +372,7 @@ int lockup(char* name, int* array, char arg){
 			exit(EXIT_FAILURE);
 		}
 
-		printf("ROOT NOT LOCKED\n"); //debug
+		printf("ROOT WRITE LOCKED\n"); //debug
 	}
 	else if (nslash == 0){                         /*If number of slash == 0 means changes will be made inside root directory*/       
 		inode_get_lock(current_inumber, &current_lock);
@@ -368,7 +381,7 @@ int lockup(char* name, int* array, char arg){
 			exit(EXIT_FAILURE);
 		}
 
-		printf("ROOT LOCKED\n"); //debug
+		printf("ROOT READ LOCKED\n"); //debug
 	}
 	
 	inode_get(current_inumber, &nType, &data);
@@ -409,8 +422,10 @@ void unlock(int* array, int counter){
     pthread_rwlock_t current_lock;
 
 	printf("Unlocking..\n");
+	printf("size:%d\n",counter);
 	counter--;
 	for(;counter>=0;counter--){
+		printf("%d\n",array[counter]);
 		inode_get_lock(array[counter],&current_lock);
 		if(pthread_rwlock_unlock(&current_lock) != 0){
             fprintf(stderr, "Error: rwlock unlock error\n");
