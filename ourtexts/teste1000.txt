@@ -29,4 +29,8 @@ c therology f
 c autophotometry f
 c nonarcing f
 c expiry f
-l s1/s2/s4
+d busted
+d Amalfitan
+d hydrant
+d Cephalophus
+d heterolysin

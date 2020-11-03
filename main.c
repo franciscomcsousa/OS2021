@@ -17,6 +17,63 @@ int headQueue = 0;
 FILE *fp_input, *fp_output;
 extern pthread_mutex_t mutex;
 
+//-------------------------SEGUNDO REQUESITO-------------------------------
+pthread_mutex_t mutexfile;
+pthread_cond_t canInsert, canRemove;
+
+char buffer[10][MAX_INPUT_SIZE];
+int counter = 0; //quantos comandos estao no buffer
+int comandoloc = 0; //onde colocar o comando lido
+int comandoprox = 0; //qual o proximo comando a ser executado
+int eof = 0; //indica se ja chegamos ao fim do ficheiro "0"->ainda n "1"->ja
+
+int insertBuffer(char* data){
+
+    pthread_mutex_lock(&mutex);
+
+    if(data[0] == '\0'){
+        eof = 1;
+        return -1;
+    }
+
+    while (counter == 10) pthread_cond_wait(&canInsert,&mutex);
+
+    strcpy(buffer[comandoloc],data);//nao deve ser isto
+    comandoloc++;
+    if (comandoloc == 10) comandoloc = 0;
+    counter++;
+
+    pthread_cond_signal(&canRemove);
+    pthread_mutex_unlock(&mutex);
+
+    return 1;
+}
+
+char* removeBuffer(){
+
+    pthread_mutex_lock(&mutex);
+    char* data;
+
+    while(counter == 0) {
+        if(eof != 1)
+            pthread_cond_wait(&canRemove,&mutex);
+        //pthread_cond_broadcast(..);
+        //pthread_exit(..);
+    }
+    
+    //strcpy(data,buffer[comandoprox]);
+    data = buffer[comandoprox];
+    comandoprox++;
+    if (comandoprox == 10) comandoprox = 0;
+    counter--;
+
+    pthread_cond_signal(&canInsert);
+    pthread_mutex_unlock(&mutex);
+
+    return data;
+}
+//-------------------------SEGUNDO REQUESITO-------------------------------
+
 int insertCommand(char* data) {
     if(numberCommands != MAX_COMMANDS) {
         strcpy(inputCommands[numberCommands++], data);
@@ -202,6 +259,7 @@ int main(int argc, char* argv[]) {
 
     /* prints tree */
     print_tecnicofs_tree(fp_output);
+    fclose(fp_output);
 
     /* release allocated memory and destroys locks*/
     destroy_fs();

@@ -131,10 +131,6 @@ int inode_delete(int inumber) {
     if (inode_table[inumber].data.dirEntries)
         free(inode_table[inumber].data.dirEntries);
 
-    if(pthread_rwlock_unlock(&inode_table[inumber].rwl) != 0){
-        fprintf(stderr, "Error: rwlock unlock error\n");
-        exit(EXIT_FAILURE);
-    }
     return SUCCESS;
 }
 

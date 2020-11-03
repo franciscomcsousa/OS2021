@@ -226,12 +226,6 @@ int delete(char *name){
 
 	child_inumber = lookup_sub_node(child_name, pdata.dirEntries);
 
-	inode_get_lock(child_inumber,&rwl);
-	if(pthread_rwlock_wrlock(&rwl) != 0){
-			fprintf(stderr, "Error: wrlock lock error\n");
-			exit(EXIT_FAILURE);
-	}
-
 	if (child_inumber == FAIL) {
 		printf("could not delete %s, does not exist in dir %s\n",
 		       name, parent_name);
@@ -240,6 +234,7 @@ int delete(char *name){
 	}
 
 	inode_get(child_inumber, &cType, &cdata);
+	inode_get_lock(child_inumber,&rwl);
 
 	if (cType == T_DIRECTORY && is_dir_empty(cdata.dirEntries) == FAIL) {
 		printf("could not delete %s: is a directory and not empty\n",
@@ -263,6 +258,12 @@ int delete(char *name){
 		return FAIL;
 	}
 	
+	// unlocks deleted inode
+	if(pthread_rwlock_unlock(&rwl) != 0){
+        fprintf(stderr, "Error: rwlock unlock error\n");
+        exit(EXIT_FAILURE);
+    }
+
 	unlock(locked_inodes,size-1);  //size-1 because deleted inode already unlocked
 	return SUCCESS;
 }
@@ -313,12 +314,12 @@ int lookup(char *name) {
 	return current_inumber;
 }
 
-/*     c a/b/c/e  f */
-/*     c a/b/c/d  f */
-/*     c a/b/c/   d */
-/*     c a/b/     d */
-/*     c a/b        */
-/*     c a          */
+/*     c a/b/c/e  f  4-> c e locked*/
+/*     c a/b/c/d  f   igual*/
+/*     c a/b/c/   d  3-> b e c lockec*/
+/*     c a/b/     d  2-> a e b locked*/
+/*     c a/b         igual*/
+/*     c a           1 root locked*/
 
 /**
  * Count number of char c in string path.
@@ -333,11 +334,20 @@ int countChar(char* path,char c){
 	return count;
 }
 
-/**
- * fclose()
- * deviamos ter 2 mutexs em vez de apenas 1
-*/
+int countCharFixed(char* fullpath,char* c){
+	int count = 0;
+	char fullpath_copy[MAX_FILE_NAME];
+	char *saveptr;
 
+	strcpy(fullpath_copy,fullpath); //to avoid destroying path
+	char* path = strtok_r(fullpath_copy,c,&saveptr);
+
+	while(path != NULL){
+		count++;
+		path = strtok_r(NULL,c,&saveptr);
+	}
+	return count;
+}
 
 /**
  * Locks inodes involved in the operation.
@@ -363,25 +373,25 @@ int lockup(char* name, int* array, char arg){
     pthread_rwlock_t current_lock;
 
 	strcpy(full_path, name);
-	int nslash = countChar(full_path,'/'); 
+	int nslash = countCharFixed(full_path,"/"); 
 
-	if(arg == 'r' || nslash > 0){                 /*If 'r' all files are rdlock. If number of slashs > 0 no changes will be made inside root directory*/
+	if(arg == 'r' || nslash > 1){                 /*If 'r' all files are rdlock. If number of slashs > 0 no changes will be made inside root directory*/
 		inode_get_lock(current_inumber, &current_lock);
 		if(pthread_rwlock_rdlock(&current_lock) != 0){
 			fprintf(stderr, "Error: rdlock lock error\n");
 			exit(EXIT_FAILURE);
 		}
 
-		printf("ROOT WRITE LOCKED\n"); //debug
+		printf("ROOT READ LOCKED\n"); //debug
 	}
-	else if (nslash == 0){                         /*If number of slash == 0 means changes will be made inside root directory*/       
+	else if (nslash == 1){                         /*If number of slash == 0 means changes will be made inside root directory*/       
 		inode_get_lock(current_inumber, &current_lock);
 		if(pthread_rwlock_wrlock(&current_lock) != 0){
 			fprintf(stderr, "Error: wrlock lock error\n");
 			exit(EXIT_FAILURE);
 		}
 
-		printf("ROOT READ LOCKED\n"); //debug
+		printf("ROOT WRITE LOCKED\n"); //debug
 	}
 	
 	inode_get(current_inumber, &nType, &data);
@@ -389,7 +399,7 @@ int lockup(char* name, int* array, char arg){
 
     while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {  
 
-		if(nslash >= 2 || arg == 'r'){          
+		if(nslash >= 3 || arg == 'r'){          
 			inode_get_lock(current_inumber, &current_lock);
 			if(pthread_rwlock_rdlock(&current_lock) != 0){
 				fprintf(stderr, "Error: rdlock lock error\n");
@@ -422,7 +432,6 @@ void unlock(int* array, int counter){
     pthread_rwlock_t current_lock;
 
 	printf("Unlocking..\n");
-	printf("size:%d\n",counter);
 	counter--;
 	for(;counter>=0;counter--){
 		printf("%d\n",array[counter]);
@@ -441,5 +450,4 @@ void unlock(int* array, int counter){
  */
 void print_tecnicofs_tree(FILE *fp){
 	inode_print_tree(fp, FS_ROOT, "");
-	fclose(fp);
 }
