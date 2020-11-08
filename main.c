@@ -9,89 +9,52 @@
 
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
+#define BUFFER_SIZE 10
 
-char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
-int numberCommands = 0;
-int headQueue = 0;
-
-FILE *fp_input, *fp_output;
-extern pthread_mutex_t mutex;
-
-//-------------------------SEGUNDO REQUESITO-------------------------------
 pthread_mutex_t mutexfile;
 pthread_cond_t canInsert, canRemove;
 
-char buffer[10][MAX_INPUT_SIZE];
-int counter = 0; //quantos comandos estao no buffer
-int comandoloc = 0; //onde colocar o comando lido
-int comandoprox = 0; //qual o proximo comando a ser executado
-int eof = 0; //indica se ja chegamos ao fim do ficheiro "0"->ainda n "1"->ja
+char buffer[BUFFER_SIZE][MAX_INPUT_SIZE];
+int counter = 0;        //quantos comandos estao no buffer
+int insertPointer = 0; //onde colocar o comando lido
+int removePointer = 0;    //qual o proximo comando a ser executado
+int eof = 0;            //indica se ja chegamos ao fim do ficheiro "0"->ainda n "1"->ja
 
-int insertBuffer(char* data){
+int insertCommand(char* data){
 
-    pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutexfile);
 
-    if(data[0] == '\0'){
-        eof = 1;
-        return -1;
-    }
+    while (counter == BUFFER_SIZE) 
+        pthread_cond_wait(&canInsert,&mutexfile); //if full waits for a command to be removed
 
-    while (counter == 10) pthread_cond_wait(&canInsert,&mutex);
-
-    strcpy(buffer[comandoloc],data);//nao deve ser isto
-    comandoloc++;
-    if (comandoloc == 10) comandoloc = 0;
+    strcpy(buffer[insertPointer],data);
+    insertPointer++;
+    if (insertPointer == BUFFER_SIZE) 
+        insertPointer = 0;
     counter++;
 
     pthread_cond_signal(&canRemove);
-    pthread_mutex_unlock(&mutex);
+    pthread_mutex_unlock(&mutexfile);
 
     return 1;
 }
 
-char* removeBuffer(){
+void removeCommand(char* array){
 
-    pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutexfile);
     char* data;
 
-    while(counter == 0) {
-        if(eof != 1)
-            pthread_cond_wait(&canRemove,&mutex);
-        //pthread_cond_broadcast(..);
-        //pthread_exit(..);
-    }
+    while(counter == 0) 
+        pthread_cond_wait(&canRemove,&mutexfile); //if empty waits for command to be inserted
     
-    //strcpy(data,buffer[comandoprox]);
-    data = buffer[comandoprox];
-    comandoprox++;
-    if (comandoprox == 10) comandoprox = 0;
+    strcpy(array,buffer[removePointer]);
+    removePointer++;
+    if (removePointer == BUFFER_SIZE) 
+        removePointer = 0;
     counter--;
 
     pthread_cond_signal(&canInsert);
-    pthread_mutex_unlock(&mutex);
-
-    return data;
-}
-//-------------------------SEGUNDO REQUESITO-------------------------------
-
-int insertCommand(char* data) {
-    if(numberCommands != MAX_COMMANDS) {
-        strcpy(inputCommands[numberCommands++], data);
-        return 1;
-    }
-    return 0;
-}
-
-char* removeCommand() {
-    commandLock();
-    if(numberCommands > 0){
-        numberCommands--;
-        char* output = inputCommands[headQueue++];
-        commandUnlock();
-        return output;  
-    }
-    commandUnlock();
-    return NULL;
+    pthread_mutex_unlock(&mutexfile);
 }
 
 void errorParse(){
@@ -99,11 +62,11 @@ void errorParse(){
     exit(EXIT_FAILURE);
 }
 
-void processInput(){
+void processInput(FILE* fp_input){
     char line[MAX_INPUT_SIZE];
 
     /* break loop with ^Z or ^D */
-    while (fgets(line, sizeof(line)/sizeof(char), fp_input)) {
+    while (fgets(line, sizeof(line)/sizeof(char), fp_input)) {  
         char token, type;
         char name[MAX_INPUT_SIZE];
 
@@ -143,19 +106,21 @@ void processInput(){
             }
         }
     }
-    fclose(fp_input);
 }
 
 void applyCommands(){
+
+   char input[MAX_INPUT_SIZE];
+
     while (1){
-        const char* command = removeCommand();
-        if (command == NULL){
+        removeCommand(input);
+        if (strcmp(input,NULL) == 0){
             break;
         }
 
         char token, type;
         char name[MAX_INPUT_SIZE];
-        int numTokens = sscanf(command, "%c %s %c", &token, name, &type);
+        int numTokens = sscanf(input, "%c %s %c", &token, name, &type);
         if (numTokens < 2) {
             fprintf(stderr, "Error: invalid command in Queue\n");
             exit(EXIT_FAILURE);
@@ -206,7 +171,7 @@ void *applyCommands_aux(){
  * Opens input and output file.
  * @param argv[]: array from stdin given by user
 */
-void processFiles(char* argv[]){
+void openFiles(char* argv[], FILE* fp_input, FILE* fp_output){
 
     fp_input = fopen(argv[1],"r");
 
@@ -240,26 +205,86 @@ void verifyInput(int argc, char* argv[]){
     }
 }
 
+void init_locks_file(){
+
+    pthread_mutex_init(&mutexfile,NULL);
+    pthread_cond_init(&canInsert,NULL);
+    pthread_cond_init(&canRemove,NULL);  //é preciso passar algo ou basta NULL?
+
+}
+
+void startTimer(struct timeval t1){
+    if (gettimeofday(&t1,NULL) != 0){
+        fprintf(stderr, "Error: system time\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void endTimer(struct timeval t2){
+    if (gettimeofday(&t2,NULL) != 0){
+        fprintf(stderr, "Error: system time\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void executionTime(struct timeval t1,struct timeval t2){
+    double time = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec)/1000000.0;
+    printf("TecnicoFS completed in %.4f seconds.\n",time);
+}
+
+void threadCreate(pthread_t* tid, int numthreads, void* function){
+    for(int i = 0; i < numthreads; i++){
+        if(pthread_create(&tid[i], NULL, function, NULL) != 0){
+            fprintf(stderr, "Error: creating threads\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+void threadJoin(pthread_t* tid, int numthreads){
+    for (int i = 0; i < numthreads; i++){
+        if(pthread_join(tid[i], NULL) != 0){
+            fprintf(stderr, "Error: joining threads\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
 int main(int argc, char* argv[]) {
+
+    FILE* fp_input;
+    FILE* fp_output;
+    struct timeval t1,t2;
+    int numthreads = atoi(argv[3]);
 
     /* verifies given input */
     verifyInput(argc, argv);
 
     /* open given files */
-    processFiles(argv);
+    openFiles(argv,fp_input,fp_output);
+
+    /* init mutex and cond */
+    init_locks_file();
 
     /* init filesystem and locks */
     init_fs();
 
-    /* process input */
-    processInput();
+    pthread_t* tid = (pthread_t*) malloc(sizeof(pthread_t) * numthreads);
 
-    /* creates pool of threads */
-    threadCreate(atoi(argv[3]), applyCommands_aux);
+    startTimer(t1);
+    
+    threadCreate(tid,numthreads,applyCommands_aux);
+    processInput(fp_input);
+    threadJoin(tid,numthreads);
+    free(tid);
+
+    endTimer(t2);
+    executionTime(t1,t2);
 
     /* prints tree */
     print_tecnicofs_tree(fp_output);
     fclose(fp_output);
+    fclose(fp_input);
 
     /* release allocated memory and destroys locks*/
     destroy_fs();

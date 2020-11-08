@@ -29,11 +29,12 @@ void executionTime(struct timeval t1,struct timeval t2){
  * @param numthreads: number of threads to create
  * @param function:   function to execute by threads
 */
-void threadCreate(int numthreads, void* function){
+/*
+void threadCreate(int numthreads, void* function, FILE* fp_input){
 
     pthread_t* tid = (pthread_t*) malloc(sizeof(pthread_t) * numthreads);
 
-    /* starts timer */
+
     if (gettimeofday(&t1,NULL) != 0){
         fprintf(stderr, "Error: system time\n");
         exit(EXIT_FAILURE);
@@ -46,6 +47,8 @@ void threadCreate(int numthreads, void* function){
         }
     }
 
+    processInput(fp_input);
+
     for (int i = 0; i < numthreads; i++){
         if(pthread_join(tid[i], NULL) != 0){
             fprintf(stderr, "Error: joining threads\n");
@@ -55,7 +58,7 @@ void threadCreate(int numthreads, void* function){
 
     free(tid);
 
-    /* ends timer */
+
     if (gettimeofday(&t2,NULL) != 0){
         fprintf(stderr, "Error: system time\n");
         exit(EXIT_FAILURE);
@@ -63,7 +66,7 @@ void threadCreate(int numthreads, void* function){
 
     executionTime(t1,t2);
 }
-
+*/
 /**
  * Locks the mutex lock used in removeCommand().
 */
