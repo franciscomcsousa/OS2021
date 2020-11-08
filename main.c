@@ -4,8 +4,9 @@
 #include <string.h>
 #include <ctype.h>
 #include <pthread.h>
+#include <sys/time.h>
 #include "fs/operations.h"
-#include "fs/sync.h"
+//#include "fs/sync.h"
 
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
@@ -42,11 +43,13 @@ int insertCommand(char* data){
 void removeCommand(char* array){
 
     pthread_mutex_lock(&mutexfile);
-    char* data;
 
-    while(counter == 0) 
+    while(counter == 0)
         pthread_cond_wait(&canRemove,&mutexfile); //if empty waits for command to be inserted
     
+    if(eof == 1)
+        return;
+
     strcpy(array,buffer[removePointer]);
     removePointer++;
     if (removePointer == BUFFER_SIZE) 
@@ -106,6 +109,8 @@ void processInput(FILE* fp_input){
             }
         }
     }
+    eof = 1;
+    pthread_cond_broadcast(&canRemove);
 }
 
 void applyCommands(){
@@ -114,7 +119,8 @@ void applyCommands(){
 
     while (1){
         removeCommand(input);
-        if (strcmp(input,NULL) == 0){
+
+        if(eof == 1){
             break;
         }
 
@@ -252,8 +258,8 @@ void threadJoin(pthread_t* tid, int numthreads){
 
 int main(int argc, char* argv[]) {
 
-    FILE* fp_input;
-    FILE* fp_output;
+    FILE* fp_input = NULL;
+    FILE* fp_output = NULL;
     struct timeval t1,t2;
     int numthreads = atoi(argv[3]);
 

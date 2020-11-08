@@ -17,12 +17,13 @@ char* gStrat; /* Strategy sync chosen by user */
  * @param t1 starting time
  * @param t2 ending time
 */
+/*
 void executionTime(struct timeval t1,struct timeval t2){
 
     double time = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec)/1000000.0;
     printf("TecnicoFS completed in %.4f seconds.\n",time);
 }
-
+*/
 /**
  * Creates pool of threads and after they finish, join them.
  * Also keeps track of execution time, printint it at the end.
