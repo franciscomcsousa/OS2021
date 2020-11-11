@@ -6,27 +6,30 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include "fs/operations.h"
-//#include "fs/sync.h"
 
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
 #define BUFFER_SIZE 10
+#define END "EOF"
 
 pthread_mutex_t mutexfile;
 pthread_cond_t canInsert, canRemove;
+struct timeval t1,t2;
 
 char buffer[BUFFER_SIZE][MAX_INPUT_SIZE];
-int counter = 0;        //quantos comandos estao no buffer
-int insertPointer = 0; //onde colocar o comando lido
-int removePointer = 0;    //qual o proximo comando a ser executado
-int eof = 0;            //indica se ja chegamos ao fim do ficheiro "0"->ainda n "1"->ja
+int counter = 0;            //number of commands inside buffer
+int insertPointer = 0;      //pointer to next free location to insert command
+int removePointer = 0;      //pointer to next command to be read
 
 int insertCommand(char* data){
 
     pthread_mutex_lock(&mutexfile);
 
+    printf("(In)entrou\n");
     while (counter == BUFFER_SIZE) 
         pthread_cond_wait(&canInsert,&mutexfile); //if full waits for a command to be removed
+
+    printf("(In)esperou\n");
 
     strcpy(buffer[insertPointer],data);
     insertPointer++;
@@ -40,24 +43,36 @@ int insertCommand(char* data){
     return 1;
 }
 
-void removeCommand(char* array){
+int removeCommand(char* array){
 
     pthread_mutex_lock(&mutexfile);
 
+    printf("(O)entrou\n");
     while(counter == 0)
         pthread_cond_wait(&canRemove,&mutexfile); //if empty waits for command to be inserted
-    
-    if(eof == 1)
-        return;
+    printf("(O)esperou\n");
 
     strcpy(array,buffer[removePointer]);
+
+    if(strcmp(array,END) == 0){               //if finds command END, ends thread
+        pthread_cond_signal(&canRemove);     //doesnt remove command END
+        pthread_mutex_unlock(&mutexfile);   //so that other threads can end too.
+        printf("(O)terminei\n");
+        return -1;
+    }
+    printf("vou executar:%s\n",array);
+
+
     removePointer++;
     if (removePointer == BUFFER_SIZE) 
         removePointer = 0;
     counter--;
 
+    printf("(O)acabou\n");
     pthread_cond_signal(&canInsert);
     pthread_mutex_unlock(&mutexfile);
+    printf("(O)acabou\n");
+    return 1;
 }
 
 void errorParse(){
@@ -109,8 +124,8 @@ void processInput(FILE* fp_input){
             }
         }
     }
-    eof = 1;
-    pthread_cond_broadcast(&canRemove);
+    insertCommand(END);   //After reading everyting creates a command END to signal the end of the file
+                         //Allows threads to end so that the program can continue running
 }
 
 void applyCommands(){
@@ -118,11 +133,9 @@ void applyCommands(){
    char input[MAX_INPUT_SIZE];
 
     while (1){
-        removeCommand(input);
-
-        if(eof == 1){
-            break;
-        }
+        
+        if(removeCommand(input) == -1)
+           break;
 
         char token, type;
         char name[MAX_INPUT_SIZE];
@@ -168,36 +181,47 @@ void applyCommands(){
     }
 }
 
+/**
+ * Function called during thread create.
+*/
 void *applyCommands_aux(){
     applyCommands();
     return NULL;
 }
 
 /**
- * Opens input and output file.
- * @param argv[]: array from stdin given by user
+ * Opens file.
+ * @param argv: array from stdin given by user
+ * @param c: file mode
 */
-void openFiles(char* argv[], FILE* fp_input, FILE* fp_output){
+FILE* openFile(char* argv[],char c){
+    FILE* fp;
+    if (c == 'r'){
+        fp = fopen(argv[1],"r");
 
-    fp_input = fopen(argv[1],"r");
-
-    if (fp_input == NULL){                     
-        fprintf(stderr,"Error: invalid input file\n");
-        exit(EXIT_FAILURE);
+        if (fp == NULL){                     
+            fprintf(stderr,"Error: invalid input file\n");
+            exit(EXIT_FAILURE);
+        }
+        return fp;
     }
+    else if (c == 'w'){
+        fp = fopen(argv[2],"w");
 
-    fp_output = fopen(argv[2],"w");
-
-    if (fp_output == NULL){
-        fprintf(stderr,"Error: invalid output file\n");
-        exit(EXIT_FAILURE);
+        if (fp == NULL){
+            fprintf(stderr,"Error: invalid output file\n");
+            exit(EXIT_FAILURE);
+        }
+        return fp;
     }
+    else
+        exit(EXIT_FAILURE);
 }
 
 /**
  * Verifies the validity of the arguments given as input.
  * @param argc: number of arguments given by user
- * @param argv[]: array from stdin given by user
+ * @param argv: array from stdin given by user
 */
 void verifyInput(int argc, char* argv[]){
     if (argc != 4){
@@ -211,33 +235,59 @@ void verifyInput(int argc, char* argv[]){
     }
 }
 
+/**
+ * Init mutex and cond used to process file.
+*/
 void init_locks_file(){
-
     pthread_mutex_init(&mutexfile,NULL);
     pthread_cond_init(&canInsert,NULL);
     pthread_cond_init(&canRemove,NULL);  //é preciso passar algo ou basta NULL?
-
 }
 
-void startTimer(struct timeval t1){
-    if (gettimeofday(&t1,NULL) != 0){
-        fprintf(stderr, "Error: system time\n");
-        exit(EXIT_FAILURE);
+/**
+ * Destroys mutex and cond used to process file.
+*/
+void destroy_locks_file(){
+    pthread_mutex_destroy(&mutexfile);
+    pthread_cond_destroy(&canInsert);
+    pthread_cond_destroy(&canRemove);
+}
+/**
+ * Tracks time.
+ * @param mode: 's' to start timer, 'e' to end
+*/
+void Timer(char mode){
+
+    if('s' == mode){
+        if (gettimeofday(&t1,NULL) != 0){
+            fprintf(stderr, "Error: system time\n");
+            exit(EXIT_FAILURE);
+        }
     }
-}
-
-void endTimer(struct timeval t2){
-    if (gettimeofday(&t2,NULL) != 0){
-        fprintf(stderr, "Error: system time\n");
-        exit(EXIT_FAILURE);
+    else if('e' == mode){
+        if (gettimeofday(&t2,NULL) != 0){
+            fprintf(stderr, "Error: system time\n");
+            exit(EXIT_FAILURE);
+        }
     }
+    else 
+        exit(EXIT_FAILURE);
 }
 
-void executionTime(struct timeval t1,struct timeval t2){
+/**
+ * Calculates and prints timer.
+*/
+void executionTime(){
     double time = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec)/1000000.0;
     printf("TecnicoFS completed in %.4f seconds.\n",time);
 }
 
+/**
+ * Creates pool of threads.
+ * @param tid: array of thread id's
+ * @param numthreads: number of threads
+ * @param function: function to execute
+*/
 void threadCreate(pthread_t* tid, int numthreads, void* function){
     for(int i = 0; i < numthreads; i++){
         if(pthread_create(&tid[i], NULL, function, NULL) != 0){
@@ -247,6 +297,11 @@ void threadCreate(pthread_t* tid, int numthreads, void* function){
     }
 }
 
+/**
+ * Joins pool of threads.
+ * @param tid: array of thread id's
+ * @param numthreads: number of threads
+*/
 void threadJoin(pthread_t* tid, int numthreads){
     for (int i = 0; i < numthreads; i++){
         if(pthread_join(tid[i], NULL) != 0){
@@ -258,41 +313,52 @@ void threadJoin(pthread_t* tid, int numthreads){
 
 int main(int argc, char* argv[]) {
 
-    FILE* fp_input = NULL;
-    FILE* fp_output = NULL;
-    struct timeval t1,t2;
+    FILE* fp_input;
+    FILE* fp_output;
     int numthreads = atoi(argv[3]);
 
-    /* verifies given input */
+    /* Verifies given input */
     verifyInput(argc, argv);
 
-    /* open given files */
-    openFiles(argv,fp_input,fp_output);
+    /* Opens input and output files */
+    fp_input = openFile(argv,'r');
+    fp_output = openFile(argv,'w');
 
-    /* init mutex and cond */
+    /* Init mutex and cond */
     init_locks_file();
 
-    /* init filesystem and locks */
+    /* Init filesystem and locks */
     init_fs();
 
+    /* Creates array of thread id's */
     pthread_t* tid = (pthread_t*) malloc(sizeof(pthread_t) * numthreads);
 
-    startTimer(t1);
-    
+    /* Starts Timer */
+    Timer('s');
+
+    /* Creates pool of threads to execute the commands inside the buffer */
     threadCreate(tid,numthreads,applyCommands_aux);
+
+    /* Reads input file to buffer */
     processInput(fp_input);
+
+    /* Joins threads */
     threadJoin(tid,numthreads);
-    free(tid);
 
-    endTimer(t2);
-    executionTime(t1,t2);
+    /* Stops Timer */
+    Timer('e');
 
-    /* prints tree */
+    /* Prints time and tree */
+    executionTime();
     print_tecnicofs_tree(fp_output);
+
+    /* Close input and output files */
     fclose(fp_output);
     fclose(fp_input);
 
-    /* release allocated memory and destroys locks*/
+    /* Release allocated memory and destroys locks*/
+    free(tid);
+    destroy_locks_file();
     destroy_fs();
 
     exit(EXIT_SUCCESS);

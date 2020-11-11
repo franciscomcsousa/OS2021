@@ -5,7 +5,7 @@
 #include <sys/time.h>
 #include "sync.h"
 
-struct timeval t1,t2;
+//struct timeval t1,t2;
 
 pthread_mutex_t mutex;
 pthread_rwlock_t rwl;
