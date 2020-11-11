@@ -9,6 +9,7 @@ int create(char *name, type nodeType);
 int delete(char *name);
 int lookup(char *name);
 
+int move(char* path, char* dest);
 int countChar(char* path,char c);
 int lockup(char* name, int* array, char arg);
 void unlock(int* array, int counter);

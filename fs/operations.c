@@ -251,7 +251,7 @@ int delete(char *name){
 		return FAIL;
 	}
 
-	if (inode_delete(child_inumber) == FAIL) {    // unlocks the inode deleted
+	if (inode_delete(child_inumber) == FAIL) {  
 		printf("could not delete inode number %d from dir %s\n",
 		       child_inumber, parent_name);
 		unlock(locked_inodes,size);
@@ -348,6 +348,146 @@ int countCharFixed(char* fullpath,char* c){
 	}
 	return count;
 }
+
+
+/**
+ * Moves path to destiny path.
+ * @param path
+ * @param dest
+*/
+
+/**
+ * m /a/b /a/c
+ * m  a/b/c/d  a/b/d
+ * m /dA/f1 /dB/f2
+ * 
+ * VERIFICACAO  lookup path ---> tem de retornar current_inumber
+ * VERIFICACAO  lookup dest ---> tem de retornar -1
+ * 
+ * split_parent_child_from_path(name_copy, &parent_name, &child_name);
+ * parent_inumber = lookup(parent_name);
+ * 
+ * inode_get(parent_inumber, &pType, &pdata);
+ * 
+ * VERIFICACAO 
+ * 
+ * split_parent_child_from_path(name_copy, &parent_name, &child_name);
+ * parent_inumber = lookup(parent_name);
+ * 
+ * inode_get(parent_inumber, &pType, &pdata);
+ * 
+ *  
+ * 
+ * 
+*/
+
+int move(char* path, char* dest){
+
+	int parent_inumber, child_inumber;
+	int parent_inumber_dest;
+
+	char *parent_name, *child_name;
+	char *parent_name_dest, *child_name_dest;
+
+	char name_copy[MAX_FILE_NAME];
+	char path_copy[MAX_FILE_NAME];
+
+	int size;
+	int locked_inodes[INODE_TABLE_SIZE];
+	int size_dest;
+	int locked_inodes_dest[INODE_TABLE_SIZE];
+	
+	type ptype;
+	union Data pdata;
+
+	type ptype_dest;
+	union Data pdata_dest;
+
+	strcpy(path_copy, path);
+	size = lockup(path_copy,locked_inodes,'w');
+
+	strcpy(path_copy, dest);
+	size_dest = lockup(path_copy,locked_inodes_dest,'w');
+
+
+	strcpy(name_copy, path);
+	split_parent_child_from_path(name_copy, &parent_name, &child_name);
+
+	parent_inumber = lookup(parent_name);
+	if (parent_inumber == FAIL) {
+		printf("failed to move %s, invalid parent dir %s\n",path, parent_name);
+		unlock(locked_inodes,size);
+		unlock(locked_inodes_dest,size_dest);
+		return FAIL;
+	}
+
+	inode_get(parent_inumber, &ptype, &pdata);
+	if(ptype != T_DIRECTORY) {
+		printf("failed to move %s, parent %s is not a dir\n",path, parent_name);
+		unlock(locked_inodes,size);
+		unlock(locked_inodes_dest,size_dest);
+		return FAIL;
+	}
+
+	child_inumber = lookup_sub_node(child_name, pdata.dirEntries);
+
+	if (child_inumber == FAIL) {
+		printf("failed to move %s, doesnt exists in dir %s\n",
+		       child_name, parent_name);
+		unlock(locked_inodes,size);
+		unlock(locked_inodes_dest,size_dest);
+		return FAIL;
+	}
+
+/*----------------------------DEST--------------------------------------*/
+
+	strcpy(name_copy, dest);
+	split_parent_child_from_path(name_copy, &parent_name_dest, &child_name_dest);
+
+	parent_inumber_dest = lookup(parent_name_dest);
+	if (parent_inumber_dest == FAIL) {
+		printf("failed to move %s, invalid parent dir %s\n",dest, parent_name_dest);
+		unlock(locked_inodes,size);
+		unlock(locked_inodes_dest,size_dest);
+		return FAIL;
+	}
+
+	inode_get(parent_inumber_dest, &ptype_dest, &pdata_dest);
+	if(ptype_dest != T_DIRECTORY) {
+		printf("failed to move %s, parent %s is not a dir\n",dest, parent_name_dest);
+		unlock(locked_inodes,size);
+		unlock(locked_inodes_dest,size_dest);
+		return FAIL;
+	}
+
+	if (lookup_sub_node(child_name_dest, pdata_dest.dirEntries) != FAIL) {
+		printf("failed to move %s, exists in dir %s\n",child_name_dest, parent_name_dest);
+		unlock(locked_inodes,size);
+		unlock(locked_inodes_dest,size_dest);
+		return FAIL;
+	}
+
+	if (dir_reset_entry(parent_inumber, child_inumber) == FAIL) {
+		printf("failed to delete %s from dir %s\n",child_name, parent_name);
+		unlock(locked_inodes,size);
+		unlock(locked_inodes_dest,size_dest);
+		return FAIL;
+	}
+
+	if (dir_add_entry(parent_inumber_dest, child_inumber, child_name_dest) == FAIL) {
+		printf("could not add entry %s in dir %s\n",child_name_dest, parent_name_dest);
+		unlock(locked_inodes,size);
+		unlock(locked_inodes_dest,size_dest);
+		return FAIL;
+	}
+
+
+
+	unlock(locked_inodes,size);
+	unlock(locked_inodes_dest,size_dest);
+	return 1;
+}
+
 
 /**
  * Locks inodes involved in the operation.

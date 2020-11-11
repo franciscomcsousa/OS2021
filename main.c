@@ -25,11 +25,11 @@ int insertCommand(char* data){
 
     pthread_mutex_lock(&mutexfile);
 
-    printf("(In)entrou\n");
+    //printf("(In)entrou\n");
     while (counter == BUFFER_SIZE) 
         pthread_cond_wait(&canInsert,&mutexfile); //if full waits for a command to be removed
 
-    printf("(In)esperou\n");
+    //printf("(In)esperou\n");
 
     strcpy(buffer[insertPointer],data);
     insertPointer++;
@@ -47,31 +47,29 @@ int removeCommand(char* array){
 
     pthread_mutex_lock(&mutexfile);
 
-    printf("(O)entrou\n");
+    //printf("(O)entrou\n");
     while(counter == 0)
         pthread_cond_wait(&canRemove,&mutexfile); //if empty waits for command to be inserted
-    printf("(O)esperou\n");
+    //printf("(O)esperou\n");
 
     strcpy(array,buffer[removePointer]);
 
     if(strcmp(array,END) == 0){               //if finds command END, ends thread
         pthread_cond_signal(&canRemove);     //doesnt remove command END
         pthread_mutex_unlock(&mutexfile);   //so that other threads can end too.
-        printf("(O)terminei\n");
+        //printf("(O)terminei\n");
         return -1;
     }
-    printf("vou executar:%s\n",array);
-
+    //printf("(O)vou executar:%s\n",array);
 
     removePointer++;
     if (removePointer == BUFFER_SIZE) 
         removePointer = 0;
     counter--;
 
-    printf("(O)acabou\n");
     pthread_cond_signal(&canInsert);
     pthread_mutex_unlock(&mutexfile);
-    printf("(O)acabou\n");
+    //printf("(O)acabou\n");
     return 1;
 }
 
@@ -87,8 +85,15 @@ void processInput(FILE* fp_input){
     while (fgets(line, sizeof(line)/sizeof(char), fp_input)) {  
         char token, type;
         char name[MAX_INPUT_SIZE];
+        char path[MAX_INPUT_SIZE];
+        char pathdest[MAX_INPUT_SIZE];
 
-        int numTokens = sscanf(line, "%c %s %c", &token, name, &type);
+        int numTokens;
+
+        if(line[0] == 'm')
+            numTokens = sscanf(line, "%c %s %s", &token, path, pathdest);
+        else
+            numTokens = sscanf(line, "%c %s %c", &token, name, &type);
 
         /* perform minimal validation */
         if (numTokens < 1) {
@@ -116,6 +121,13 @@ void processInput(FILE* fp_input){
                     break;
                 return;
             
+            case 'm':
+                if(numTokens != 3)
+                    errorParse();
+                if(insertCommand(line))
+                    break;
+                return;
+
             case '#':
                 break;
             
@@ -139,7 +151,15 @@ void applyCommands(){
 
         char token, type;
         char name[MAX_INPUT_SIZE];
-        int numTokens = sscanf(input, "%c %s %c", &token, name, &type);
+        char path[MAX_INPUT_SIZE];
+        char pathdest[MAX_INPUT_SIZE];
+        int numTokens;
+
+        if(input[0] == 'm')
+            numTokens = sscanf(input, "%c %s %s", &token, path, pathdest);
+        else
+            numTokens = sscanf(input, "%c %s %c", &token, name, &type);
+
         if (numTokens < 2) {
             fprintf(stderr, "Error: invalid command in Queue\n");
             exit(EXIT_FAILURE);
@@ -173,6 +193,12 @@ void applyCommands(){
                 printf("Delete: %s\n", name);
                 delete(name);
                 break;
+
+            case 'm':
+                printf("Move: %s to %s\n",path,pathdest);
+                move(path,pathdest);
+                break;
+
             default: { /* error */
                 fprintf(stderr, "Error: command to apply\n");
                 exit(EXIT_FAILURE);
