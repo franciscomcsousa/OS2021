@@ -12,6 +12,7 @@
 #define BUFFER_SIZE 10
 #define END "EOF"
 #define SUCCESS 0
+#define ENDOFFILE 1
 
 pthread_mutex_t mutexfile;
 pthread_cond_t canInsert, canRemove;
@@ -22,6 +23,10 @@ int counter = 0;            //number of commands inside buffer
 int insertPointer = 0;      //pointer to next free location to insert command
 int removePointer = 0;      //pointer to next command to be read
 
+/**
+ * Inserts a command from a text file to a circular buffer.
+ * @param data
+*/
 int insertCommand(char* data){
 
     if(pthread_mutex_lock(&mutexfile) != 0){
@@ -31,7 +36,6 @@ int insertCommand(char* data){
   
     while (counter == BUFFER_SIZE) 
         pthread_cond_wait(&canInsert,&mutexfile); //if full waits for a command to be removed
-
 
     strcpy(buffer[insertPointer],data);
     insertPointer++;
@@ -44,10 +48,13 @@ int insertCommand(char* data){
         fprintf(stderr, "Error: mutex unlock error\n");
         exit(EXIT_FAILURE);
     }
-
     return EXIT_SUCCESS;
 }
 
+/**
+ * Removes a command from the buffer to be executed.
+ * @param array
+*/
 int removeCommand(char* array){
 
     if(pthread_mutex_lock(&mutexfile) != 0){
@@ -63,7 +70,7 @@ int removeCommand(char* array){
     if(strcmp(array,END) == 0){               //if finds command END, ends thread
         pthread_cond_signal(&canRemove);     //doesnt remove command END
         pthread_mutex_unlock(&mutexfile);   //so that other threads can end too.
-        return 1;
+        return ENDOFFILE;
     }
 
     removePointer++;
@@ -109,28 +116,28 @@ void processInput(FILE* fp_input){
             case 'c':
                 if(numTokens != 3)
                     errorParse();
-                if(insertCommand(line) == 0)
+                if(insertCommand(line) == EXIT_SUCCESS)
                     break;
                 return;
             
             case 'l':
                 if(numTokens != 2)
                     errorParse();
-                if(insertCommand(line) == 0)
+                if(insertCommand(line) == EXIT_SUCCESS)
                     break;
                 return;
             
             case 'd':
                 if(numTokens != 2)
                     errorParse();
-                if(insertCommand(line) == 0)
+                if(insertCommand(line) == EXIT_SUCCESS)
                     break;
                 return;
             
             case 'm':
                 if(numTokens != 3)
                     errorParse();
-                if(insertCommand(line) == 0)
+                if(insertCommand(line) == EXIT_SUCCESS)
                     break;
                 return;
 
@@ -214,7 +221,7 @@ void applyCommands(){
 }
 
 /**
- * Function called during thread create.
+ * Called during thread create.
 */
 void *applyCommands_aux(){
     applyCommands();

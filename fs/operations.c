@@ -1,5 +1,4 @@
 #include "operations.h"
-#include "sync.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -124,15 +123,11 @@ int create(char *name, type nodeType){
 	union Data pdata;
 
 	int size;
-	char path[MAX_FILE_NAME];
 	int locked_inodes[INODE_TABLE_SIZE];
 
-	strcpy(path, name);
-	size = lockup(path,locked_inodes,'w');
-
+	size = lockPath(name,locked_inodes,'w');
 
 	strcpy(name_copy, name);
-
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
 
 	parent_inumber = lookup(parent_name);
@@ -180,7 +175,6 @@ int create(char *name, type nodeType){
 	return SUCCESS;
 }
 
-
 /*
  * Deletes a node given a path.
  * Input:
@@ -196,12 +190,10 @@ int delete(char *name){
 	union Data pdata, cdata;
 
 	int size;
-	char path[MAX_FILE_NAME];
 	int locked_inodes[INODE_TABLE_SIZE];
 	pthread_rwlock_t rwl;
 
-	strcpy(path, name);
-	size = lockup(path,locked_inodes,'w');
+	size = lockPath(name,locked_inodes,'w');
 
 	strcpy(name_copy, name);
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
@@ -258,7 +250,7 @@ int delete(char *name){
 		return FAIL;
 	}
 	
-	// unlocks deleted inode
+	/* unlocks deleted inode */
 	if(pthread_rwlock_unlock(&rwl) != 0){
         fprintf(stderr, "Error: rwlock unlock error\n");
         exit(EXIT_FAILURE);
@@ -284,11 +276,9 @@ int lookup(char *name) {
 	char *saveptr;
 
 	int size;
-	char original_path[MAX_FILE_NAME];  /*the name 'path' is already declared */
 	int locked_inodes[INODE_TABLE_SIZE];
 
-	strcpy(original_path, name);
-	size = lockup(original_path,locked_inodes,'r');
+	size = lockPath(name,locked_inodes,'r');
 
 	strcpy(full_path, name);
 
@@ -324,90 +314,40 @@ int countChar(char* path,char c){
     return count;
 }
 
-/* examples */
-/*     c a/b/c/e  f  4-> c e locked		*/
-/*     c a/b/c/d  f   igual				*/
-/*     c a/b/c/   d  3-> b e c lockec	*/
-/*     c a/b/     d  2-> a e b locked	*/
-/*     c a/b         igual				*/
-/*     c a           1 root locked		*/
-
-int countCharFixed(char* fullpath,char* c){
-	int count = 0;
-	char fullpath_copy[MAX_FILE_NAME];
-	char *saveptr;
-
-	strcpy(fullpath_copy,fullpath); //to avoid destroying path  duplicated? already cpy outside
-	char* path = strtok_r(fullpath_copy,c,&saveptr);
-
-	while(path != NULL){
-		count++;
-		path = strtok_r(NULL,c,&saveptr);
-	}
-	return count;
-}
-
-
 /**
- * Moves path to destiny path.
+ * Moves file/dir from path to destiny path.
  * @param path
  * @param dest
 */
-
-/**
- * m /a/b /a/c
- * m  a/b/c/d  a/b/d
- * m /dA/f1 /dB/f2
-*/
-
 int move(char* path, char* dest){
 
-	int parent_inumber, child_inumber;
-	int parent_inumber_dest;
+	int parent_inumber, child_inumber, parent_inumber_dest;
 
-	char *parent_name, *child_name;
-	char *parent_name_dest, *child_name_dest;
+	char *parent_name, *child_name, *parent_name_dest, *child_name_dest;
 
 	char name_copy[MAX_FILE_NAME];
-	char path_copy[MAX_FILE_NAME];
 
-	int size;
-	int locked_inodes[INODE_TABLE_SIZE];
-	int size_dest;
-	int locked_inodes_dest[INODE_TABLE_SIZE];
-	
-	type ptype;
-	union Data pdata;
+	int size,size_dest;
+	int locked_inodes[INODE_TABLE_SIZE], locked_inodes_dest[INODE_TABLE_SIZE];
 
-	type ptype_dest;
-	union Data pdata_dest;
-	
-	//  /a/b/c  /a/d/x  fazer lockup alfabeticamente
-	//  cuidado com renomear
+	type ptype, ptype_dest;
+	union Data pdata, pdata_dest;
 
-	//  mv  /a/x/b/c   /a/k/d/f    
-	//  mv  /a/k/d/f   /a/x/b/c  
-	//sleep to test
-
-	if(strcmp(path,dest)){
-		strcpy(path_copy, path);
-		size = lockup(path_copy,locked_inodes,'w');
-		strcpy(path_copy, dest);
-		size_dest = lockup(path_copy,locked_inodes_dest,'w');
+    /* to prevent deadlocks, locks are made in alphabetical order*/
+	int value = strcmp(path,dest);
+	if(value > 0){
+		size = lockPath(path,locked_inodes,'w');
+		size_dest = lockPath(dest,locked_inodes_dest,'w');
 	}
-	else{
-		strcpy(path_copy, dest);
-		size_dest = lockup(path_copy,locked_inodes_dest,'w');
-		strcpy(path_copy, path);
-		size = lockup(path_copy,locked_inodes,'w');
+	else if (value < 0){
+		size_dest = lockPath(dest,locked_inodes_dest,'w');
+		size = lockPath(path,locked_inodes,'w');
 	}
-
-	for (int i = 0; i < 500000000; i++) {}
+	else
+		return SUCCESS;
 
 	strcpy(name_copy, path);
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
-
-/*-------------------------------------VERIFIES GIVEN PATH------------------------------*/
 
 	parent_inumber = lookup(parent_name);
 	if (parent_inumber == FAIL) {
@@ -435,8 +375,6 @@ int move(char* path, char* dest){
 		return FAIL;
 	}
 
-/*----------------------------VERIFIES GIVEN DEST PATH--------------------------------------*/
-
 	strcpy(name_copy, dest);
 	split_parent_child_from_path(name_copy, &parent_name_dest, &child_name_dest);
 
@@ -463,6 +401,7 @@ int move(char* path, char* dest){
 		return FAIL;
 	}
 
+	/* resets entry in path directory and adds entry in dest directory */
 	if (dir_reset_entry(parent_inumber, child_inumber) == FAIL) {
 		printf("failed to delete %s from dir %s\n",child_name, parent_name);
 		unlock(locked_inodes,size);
@@ -477,29 +416,56 @@ int move(char* path, char* dest){
 		return FAIL;
 	}
 
-
-
 	unlock(locked_inodes,size);
 	unlock(locked_inodes_dest,size_dest);
-	return 1;
+	return SUCCESS;
 }
 
+/**
+ * Calculates the number of inodes of a given path that will be locked.
+ * @param fullpath
+*/
+int countiNodes(char* fullpath){
+	int counter = 0;
+	char fullpath_copy[MAX_FILE_NAME];
+	char *saveptr;
+	char delim[] = "/";
+
+	strcpy(fullpath_copy,fullpath); 
+	char* path = strtok_r(fullpath_copy,delim,&saveptr);
+
+	while(path != NULL){
+		counter++;
+		path = strtok_r(NULL,delim,&saveptr);
+	}
+	return counter;
+}
 
 /**
- * Locks inodes involved in the operation.
+	* For a given path we have to wrlock the last two elements and rdlock the rest.
+	* To achieve that we calculate the amount of nodes (nNodes) that need to be locked,
+	* from there we decrease the value of nNodes in each iteration of the while cycle knowing that
+	* when this value reaches 2 we will start wrlock nodes instead of rdlock.
+	* The exception to this rule is when we are calling the function Lookup which only needs rdlocks.
+	* Ex: "c a d"      -> 'root' and 'a' will be wrlocked
+	*     "c a/b d"    -> 'a' and 'b' will be wrlock and 'root' rdlock
+	*     "c a/b/c d"  -> 'b' and 'c' will be rwlock and 'root' and 'a' rdlock
+*/
+
+/**
+ * Registers and locks inode of a given path.
  * @param name is the path where file will be created/destroyed/found
  * @param array is the array of inode_number that will be locked
  * @param arg is the type of operation. If 'r' will rwlock all inode, if 'w' will wrlock directory 
  *                                      where changes will be made and the inode being created/destroyed.
 */
-int lockup(char* name, int* array, char arg){
+int lockPath(char* name, int* array, char arg){
 
     char full_path[MAX_FILE_NAME];
     char delim[] = "/";
 	char *saveptr;
 
     int counter = 0;
-
     int current_inumber = FS_ROOT;
 
     array[counter++] = current_inumber;
@@ -509,54 +475,45 @@ int lockup(char* name, int* array, char arg){
     pthread_rwlock_t current_lock;
 
 	strcpy(full_path, name);
-	/* returns the number of "/" that a given path has */
-	int nslash = countCharFixed(full_path,"/");
+	int nNodes = countiNodes(full_path);
 
-	/*If 'r' all files are rdlock. */
-	/*If number of slashs > 0 no changes will be made inside root directory. */
-	if(arg == 'r' || nslash > 1){                 
-		inode_get_lock(current_inumber, &current_lock);
-		if(pthread_rwlock_rdlock(&current_lock) != 0){
-			fprintf(stderr, "Error: rdlock lock error\n");
-			exit(EXIT_FAILURE);
-		}
-
-		printf("ROOT READ LOCKED\n"); //debug
-	}
-	/*If number of slash == 1 means changes will be made inside root directory*/    
-	else if (nslash == 1){                       
+	if (nNodes == 1 && arg != 'r'){                       
 		inode_get_lock(current_inumber, &current_lock);
 		if(pthread_rwlock_wrlock(&current_lock) != 0){
 			fprintf(stderr, "Error: wrlock lock error\n");
 			exit(EXIT_FAILURE);
 		}
-
-		printf("ROOT WRITE LOCKED\n"); //debug
 	}
+	else{                 
+		inode_get_lock(current_inumber, &current_lock);
+		if(pthread_rwlock_rdlock(&current_lock) != 0){
+			fprintf(stderr, "Error: rdlock lock error\n");
+			exit(EXIT_FAILURE);
+		}
+	}   
 	
 	inode_get(current_inumber, &nType, &data);
     char* path = strtok_r(full_path, delim,&saveptr);     
 
+	/** 
+	 * Process the rest of path reducing in each iteration the value of nNodes. This way we will know 
+	 * when we have reached an inode_number that needs to be wrlock instead of rdlock.
+	*/
     while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {  
 
-		/* If 'r' all files are rdlock. */
-		if(nslash >= 3 || arg == 'r'){          
+		if(nNodes >= 3 || arg == 'r'){          
 			inode_get_lock(current_inumber, &current_lock);
 			if(pthread_rwlock_rdlock(&current_lock) != 0){
 				fprintf(stderr, "Error: rdlock lock error\n");
 				exit(EXIT_FAILURE);
 			}
-			printf("READ LOCKED %s\n",path); //debug
-
 		}
-		/* wr_locks diretory where file/directory will be created*/
 		else{                                    
 			inode_get_lock(current_inumber, &current_lock);
 			if(pthread_rwlock_wrlock(&current_lock) != 0){
 				fprintf(stderr, "Error: wrlock lock error\n");
 				exit(EXIT_FAILURE);
 			}
-			printf("WRITE LOCKED %s\n",path); //debug
 		}
 
 		array[counter++] = current_inumber;
@@ -564,22 +521,20 @@ int lockup(char* name, int* array, char arg){
         inode_get(current_inumber, &nType, &data);
         path = strtok_r(NULL, delim,&saveptr);
 
-		nslash--;
+		nNodes--;
     }
-	return counter;
+	return counter; 
 }
 
 /**
  * Unlocks inodes inside given array.
+ * @param array: array of inode_numbers to unlock
+ * @param counter: number of inode_numbers in array
 */
 void unlock(int* array, int counter){
 
     pthread_rwlock_t current_lock;
-
-	//printf("Unlocking..\n");
-	counter--;
-	for(;counter>=0;counter--){
-		//printf("%d\n",array[counter]);
+	for(counter--;counter>=0;counter--){
 		inode_get_lock(array[counter],&current_lock);
 		if(pthread_rwlock_unlock(&current_lock) != 0){
             fprintf(stderr, "Error: rwlock unlock error\n");

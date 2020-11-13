@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../tecnicofs-api-constants.h"
-#include "sync.h"
 
 /* FS root inode number */
 #define FS_ROOT 0
@@ -16,7 +15,7 @@
 #define SUCCESS 0
 #define FAIL -1
 
-#define DELAY 5000
+#define DELAY 5000000
 
 
 /*
