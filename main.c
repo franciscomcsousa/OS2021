@@ -11,6 +11,7 @@
 #define MAX_INPUT_SIZE 100
 #define BUFFER_SIZE 10
 #define END "EOF"
+#define SUCCESS 0
 
 pthread_mutex_t mutexfile;
 pthread_cond_t canInsert, canRemove;
@@ -23,13 +24,14 @@ int removePointer = 0;      //pointer to next command to be read
 
 int insertCommand(char* data){
 
-    pthread_mutex_lock(&mutexfile);
-
-    //printf("(In)entrou\n");
+    if(pthread_mutex_lock(&mutexfile) != 0){
+        fprintf(stderr, "Error: mutex lock error\n");
+        exit(EXIT_FAILURE);
+    }
+  
     while (counter == BUFFER_SIZE) 
         pthread_cond_wait(&canInsert,&mutexfile); //if full waits for a command to be removed
 
-    //printf("(In)esperou\n");
 
     strcpy(buffer[insertPointer],data);
     insertPointer++;
@@ -38,29 +40,31 @@ int insertCommand(char* data){
     counter++;
 
     pthread_cond_signal(&canRemove);
-    pthread_mutex_unlock(&mutexfile);
+    if(pthread_mutex_unlock(&mutexfile) != 0){
+        fprintf(stderr, "Error: mutex unlock error\n");
+        exit(EXIT_FAILURE);
+    }
 
-    return 1;
+    return EXIT_SUCCESS;
 }
 
 int removeCommand(char* array){
 
-    pthread_mutex_lock(&mutexfile);
+    if(pthread_mutex_lock(&mutexfile) != 0){
+        fprintf(stderr, "Error: mutex lock error\n");
+        exit(EXIT_FAILURE);
+    } 
 
-    //printf("(O)entrou\n");
     while(counter == 0)
         pthread_cond_wait(&canRemove,&mutexfile); //if empty waits for command to be inserted
-    //printf("(O)esperou\n");
 
     strcpy(array,buffer[removePointer]);
 
     if(strcmp(array,END) == 0){               //if finds command END, ends thread
         pthread_cond_signal(&canRemove);     //doesnt remove command END
         pthread_mutex_unlock(&mutexfile);   //so that other threads can end too.
-        //printf("(O)terminei\n");
-        return -1;
+        return 1;
     }
-    //printf("(O)vou executar:%s\n",array);
 
     removePointer++;
     if (removePointer == BUFFER_SIZE) 
@@ -68,9 +72,11 @@ int removeCommand(char* array){
     counter--;
 
     pthread_cond_signal(&canInsert);
-    pthread_mutex_unlock(&mutexfile);
-    //printf("(O)acabou\n");
-    return 1;
+    if(pthread_mutex_unlock(&mutexfile) != 0){
+        fprintf(stderr, "Error: mutex unlock error\n");
+        exit(EXIT_FAILURE);
+    }
+    return EXIT_SUCCESS;
 }
 
 void errorParse(){
@@ -91,7 +97,7 @@ void processInput(FILE* fp_input){
         int numTokens;
 
         if(line[0] == 'm')
-            numTokens = sscanf(line, "%c %s %s", &token, path, pathdest);
+            numTokens = sscanf(line, "%c %s %s", &token, path, pathdest); // different sscanf for move command
         else
             numTokens = sscanf(line, "%c %s %c", &token, name, &type);
 
@@ -103,28 +109,28 @@ void processInput(FILE* fp_input){
             case 'c':
                 if(numTokens != 3)
                     errorParse();
-                if(insertCommand(line))
+                if(insertCommand(line) == 0)
                     break;
                 return;
             
             case 'l':
                 if(numTokens != 2)
                     errorParse();
-                if(insertCommand(line))
+                if(insertCommand(line) == 0)
                     break;
                 return;
             
             case 'd':
                 if(numTokens != 2)
                     errorParse();
-                if(insertCommand(line))
+                if(insertCommand(line) == 0)
                     break;
                 return;
             
             case 'm':
                 if(numTokens != 3)
                     errorParse();
-                if(insertCommand(line))
+                if(insertCommand(line) == 0)
                     break;
                 return;
 
@@ -146,7 +152,7 @@ void applyCommands(){
 
     while (1){
         
-        if(removeCommand(input) == -1)
+        if(removeCommand(input) != EXIT_SUCCESS)
            break;
 
         char token, type;
@@ -156,7 +162,7 @@ void applyCommands(){
         int numTokens;
 
         if(input[0] == 'm')
-            numTokens = sscanf(input, "%c %s %s", &token, path, pathdest);
+            numTokens = sscanf(input, "%c %s %s", &token, path, pathdest); // different sscanf for move command
         else
             numTokens = sscanf(input, "%c %s %c", &token, name, &type);
 

@@ -1,0 +1,4 @@
+c a d
+c b d
+c a/z f
+m a/z a/c
