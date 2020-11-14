@@ -269,23 +269,44 @@ void inode_print_tree(FILE *fp, int inumber, char *name) {
     }
 }
 
-/*
- * Copies the lock of the i-node into the arguments.
- * Only the fields referenced by non-null arguments are copied.
- * Input:
- *  - inumber: identifier of the i-node
- *  - lock: pointer to lock
- * Returns: SUCCESS or FAIL
- */
-int inode_get_lock(int inumber, pthread_rwlock_t *lock) {
+int inode_lock(int inumber,char flag) {
 
     if ((inumber < 0) || (inumber > INODE_TABLE_SIZE) || (inode_table[inumber].nodeType == T_NONE)) {
         printf("inode_get_lock: invalid inumber %d\n", inumber);
         return FAIL;
     }
 
-    if (lock)
-        *lock = inode_table[inumber].rwl;
+    if(flag == 'w'){
+        if(pthread_rwlock_wrlock(&inode_table[inumber].rwl) != 0){
+            fprintf(stderr, "Error: lock wrlock error\n");
+            //exit(EXIT_FAILURE);
+        }
+    }
+    else if(flag == 'r'){
+        if(pthread_rwlock_rdlock(&inode_table[inumber].rwl) != 0){
+            fprintf(stderr, "Error: lock rdlock error\n");
+            //exit(EXIT_FAILURE);
+        }
+    }
+    else
+        exit(EXIT_FAILURE);
+    
+    return SUCCESS;
+}
 
+pthread_rwlock_t* getlock(int inumber){
+    if ((inumber < 0) || (inumber > INODE_TABLE_SIZE) || (inode_table[inumber].nodeType == T_NONE)) {
+        printf("inode_get_lock: invalid inumber %d\n", inumber);
+        return NULL;
+    }
+    return &inode_table[inumber].rwl;
+}
+
+int inode_unlock(int inumber){
+
+    if(pthread_rwlock_unlock(&inode_table[inumber].rwl) != 0){
+        fprintf(stderr, "Error: rwlock unlock error\n");
+        exit(EXIT_FAILURE);
+    }
     return SUCCESS;
 }

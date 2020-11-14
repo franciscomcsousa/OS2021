@@ -7,7 +7,7 @@ void destroy_fs();
 int is_dir_empty(DirEntry *dirEntries);
 int create(char *name, type nodeType);
 int delete(char *name);
-int lookup(char *name);
+int lookup(char *name,char flag);
 int move(char* path, char* dest);
 int countChar(char* path,char c);
 int countiNodes(char* fullpath);

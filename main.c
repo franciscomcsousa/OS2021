@@ -60,7 +60,7 @@ int removeCommand(char* array){
     if(pthread_mutex_lock(&mutexfile) != 0){
         fprintf(stderr, "Error: mutex lock error\n");
         exit(EXIT_FAILURE);
-    } 
+    }
 
     while(counter == 0)
         pthread_cond_wait(&canRemove,&mutexfile); //if empty waits for command to be inserted
@@ -196,7 +196,7 @@ void applyCommands(){
                 }
                 break;
             case 'l': 
-                searchResult = lookup(name);
+                searchResult = lookup(name,'u');
                 if (searchResult >= 0)
                     printf("Search: %s found\n", name);
                 else
