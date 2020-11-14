@@ -320,6 +320,16 @@ int countChar(char* path,char c){
     return count;
 }
 
+int subPath(char* path, char* dest){
+
+    for (int i = 0; path[i] != '\0'; i++){
+        if (path[i] != dest[i]){
+            return 1;
+        }
+    }
+    return 0;
+}
+
 /**
  * Moves file/dir from path to destiny path.
  * @param path
@@ -339,10 +349,15 @@ int move(char* path, char* dest){
 	type ptype, ptype_dest;
 	union Data pdata, pdata_dest;
 
+	/*checks for loops*/
+	if (subPath(path, dest) == 0){
+		printf("move: cannot move %s to a subdirectory of itself, %s\n", path, dest);
+		return FAIL;
+	}
+
     /* to prevent deadlocks, locks are made in alphabetical order*/
 	int value = strcmp(path,dest);
 	if(value > 0){
-		printf("hello\n");
 		size = lockPath(path,locked_inodes,'w');
 		size_dest = lockPath(dest,locked_inodes_dest,'w');
 	}
