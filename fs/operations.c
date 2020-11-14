@@ -320,15 +320,44 @@ int countChar(char* path,char c){
     return count;
 }
 
-int subPath(char* path, char* dest){
+/**
+ * Verifies loops in move command.
+ * @param path
+ * @param dest
+*/
+int verifyLoop(char* path, char* dest){
 
-    for (int i = 0; path[i] != '\0'; i++){
-        if (path[i] != dest[i]){
-            return 1;
-        }
-    }
-    return 0;
+	char copy[MAX_FILE_NAME], copy_dest[MAX_FILE_NAME];
+	char delim[] = "/";
+
+	char *saveptr;
+	char *saveptr_dest;
+
+	strcpy(copy, path);
+	strcpy(copy_dest, dest);
+
+	char *path_tok = strtok_r(copy, delim,&saveptr);
+	char *dest_tok = strtok_r(copy_dest, delim,&saveptr_dest);
+
+	while (path_tok != NULL && dest_tok != NULL) {
+		if(strcmp(path_tok,dest_tok) == 0){
+			path_tok = strtok_r(NULL, delim,&saveptr);
+			dest_tok = strtok_r(NULL, delim,&saveptr_dest);
+		}
+		else
+			return SUCCESS;
+	}
+
+	/* if path is inside dest */
+	if(path_tok == NULL)
+		return FAIL;
+
+	return SUCCESS;
 }
+
+
+
+
 
 /**
  * Moves file/dir from path to destiny path.
@@ -349,8 +378,7 @@ int move(char* path, char* dest){
 	type ptype, ptype_dest;
 	union Data pdata, pdata_dest;
 
-	/*checks for loops*/
-	if (subPath(path, dest) == 0){
+	if(verifyLoop(path,dest) == FAIL){
 		printf("move: cannot move %s to a subdirectory of itself, %s\n", path, dest);
 		return FAIL;
 	}
@@ -430,7 +458,7 @@ int move(char* path, char* dest){
 		return FAIL;
 	}
 
-	/* resets entry in path directory and adds entry in dest directory */
+	/* resets entry in path directory */
 	if (dir_reset_entry(parent_inumber, child_inumber) == FAIL) {
 		printf("failed to delete %s from dir %s\n",child_name, parent_name);
 		unlock(locked_inodes,size);
@@ -438,6 +466,7 @@ int move(char* path, char* dest){
 		return FAIL;
 	}
 
+	/* the new entry has the same inumber but a different name */
 	if (dir_add_entry(parent_inumber_dest, child_inumber, child_name_dest) == FAIL) {
 		printf("could not add entry %s in dir %s\n",child_name_dest, parent_name_dest);
 		unlock(locked_inodes,size);
@@ -509,21 +538,10 @@ int lockPath(char* name, int* array, char arg){
 
 	if(nNodes > 1 || arg == 'r'){                 /*If 'r' all files are rdlock. If number of slashs > 0 no changes will be made inside root directory*/
 		inode_lock(current_inumber,'r');
-		printf("ROOT READ LOCKED\n"); //debug
 	}
 	else if (nNodes == 1){                         /*If number of slash == 0 means changes will be made inside root directory*/       
 		inode_lock(current_inumber, 'w');
-		printf("ROOT WRITE LOCKED\n"); //debug
 	}
-
-	/*if (nNodes == 1 && arg != 'r'){                       
-		inode_lock(current_inumber, 'w');
-		printf("ROOT WRITE LOCKED\n"); //debug
-	}
-	else{                 
-		inode_lock(current_inumber,'r');
-		printf("ROOT READ LOCKED\n"); //debug
-	}*/
 
 	inode_get(current_inumber, &nType, &data);
     char* path = strtok_r(full_path, delim,&saveptr);     

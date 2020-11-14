@@ -1,3 +1,6 @@
-c a d
-c a/a d
-m a a/a/b
+c a d 
+c b d
+c a/c d
+c a/c/d d
+c a/c/d/f f
+m a/c/d/f a/

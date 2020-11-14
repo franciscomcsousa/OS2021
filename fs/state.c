@@ -279,13 +279,13 @@ int inode_lock(int inumber,char flag) {
     if(flag == 'w'){
         if(pthread_rwlock_wrlock(&inode_table[inumber].rwl) != 0){
             fprintf(stderr, "Error: lock wrlock error\n");
-            //exit(EXIT_FAILURE);
+            exit(EXIT_FAILURE);
         }
     }
     else if(flag == 'r'){
         if(pthread_rwlock_rdlock(&inode_table[inumber].rwl) != 0){
             fprintf(stderr, "Error: lock rdlock error\n");
-            //exit(EXIT_FAILURE);
+            exit(EXIT_FAILURE);
         }
     }
     else

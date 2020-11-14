@@ -18,10 +18,10 @@ pthread_mutex_t mutexfile;
 pthread_cond_t canInsert, canRemove;
 struct timeval t1,t2;
 
-char buffer[BUFFER_SIZE][MAX_INPUT_SIZE];
-int counter = 0;            //number of commands inside buffer
-int insertPointer = 0;      //pointer to next free location to insert command
-int removePointer = 0;      //pointer to next command to be read
+char buffer[BUFFER_SIZE][MAX_INPUT_SIZE];  //circular buffer
+int counter = 0;                           //number of commands inside buffer
+int insertPointer = 0;                     //pointer to next free location to insert command
+int removePointer = 0;                     //pointer to next command to be read
 
 /**
  * Inserts a command from a text file to a circular buffer.
