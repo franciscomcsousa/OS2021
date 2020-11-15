@@ -292,7 +292,7 @@ void destroy_locks_file(){
     pthread_cond_destroy(&canRemove);
 }
 /**
- * Tracks time.
+ * Registers Time.
  * @param mode: 's' to start timer, 'e' to end
 */
 void Timer(char mode){

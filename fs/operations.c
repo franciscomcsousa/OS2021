@@ -348,16 +348,12 @@ int verifyLoop(char* path, char* dest){
 			return SUCCESS;
 	}
 
-	/* if path is inside dest */
+	/* path is inside dest */
 	if(path_tok == NULL)
 		return FAIL;
 
 	return SUCCESS;
 }
-
-
-
-
 
 /**
  * Moves file/dir from path to destiny path.
@@ -367,7 +363,6 @@ int verifyLoop(char* path, char* dest){
 int move(char* path, char* dest){
 
 	int parent_inumber, child_inumber, parent_inumber_dest;
-
 	char *parent_name, *child_name, *parent_name_dest, *child_name_dest;
 
 	char name_copy[MAX_FILE_NAME];
@@ -386,8 +381,11 @@ int move(char* path, char* dest){
     /* to prevent deadlocks, locks are made in alphabetical order*/
 	int value = strcmp(path,dest);
 	if(value > 0){
-		size = lockPath(path,locked_inodes,'w');
-		size_dest = lockPath(dest,locked_inodes_dest,'w');
+		//if(strlen(path) > strlen(dest)){
+			size = lockPath(path,locked_inodes,'w');
+			size_dest = lockPath(dest,locked_inodes_dest,'w');
+		//}
+		//else{..}
 	}
 	else if (value < 0){
 		size_dest = lockPath(dest,locked_inodes_dest,'w');
@@ -480,7 +478,7 @@ int move(char* path, char* dest){
 }
 
 /**
- * Calculates the number of inodes of a given path that will be locked.
+ * Calculates the number of inodes in a given path.
  * @param fullpath
 */
 int countiNodes(char* fullpath){
@@ -498,6 +496,53 @@ int countiNodes(char* fullpath){
 	}
 	return counter;
 }
+/*
+int lockMove(char* path, char* dest,int* array){
+	char copy[MAX_FILE_NAME], copy_dest[MAX_FILE_NAME];
+    char delim[] = "/";
+	char *saveptr, *saveptr_dest;
+
+	type nType;
+    union Data data;
+
+	type nType_dest;
+    union Data data_dest;
+
+	int counter = 0;
+
+    int current_inumber = FS_ROOT;
+	int current_inumber_dest = FS_ROOT;
+
+    array[counter++] = current_inumber;
+
+	strcpy(copy, path);
+	strcpy(copy_dest, dest);
+
+	int nNodes = countiNodes(copy);
+	int nNodes_dest = countiNodes(copy_dest);
+
+	if ( (nNodes || nNodes_dest) == 1){
+		inode_lock(current_inumber,'w');
+	}
+	else{
+		inode_lock(current_inumber,'r');
+	}
+
+	inode_get(current_inumber, &nType, &data);
+
+    char* path_tok = strtok_r(copy, delim,&saveptr);  
+	char* dest_tok = strtok_r(copy_dest, delim,&saveptr_dest);
+
+	while (path_tok != NULL && dest_tok != NULL && 
+	      ((current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) && 
+		  ((current_inumber_dest = lookup_sub_node(path, data.dirEntries)) != FAIL)){
+
+			  
+
+	}
+
+}
+*/
 
 /**
 	* For a given path we have to wrlock the last two elements and rdlock the rest.
@@ -517,8 +562,6 @@ int countiNodes(char* fullpath){
  * @param arg is the type of operation. If 'r' will rwlock all inode, if 'w' will wrlock directory 
  *                                      where changes will be made and the inode being created/destroyed.
 */
-
-
 int lockPath(char* name, int* array, char arg){
 
     char full_path[MAX_FILE_NAME];
@@ -536,10 +579,12 @@ int lockPath(char* name, int* array, char arg){
 	strcpy(full_path, name);
 	int nNodes = countiNodes(full_path);
 
-	if(nNodes > 1 || arg == 'r'){                 /*If 'r' all files are rdlock. If number of slashs > 0 no changes will be made inside root directory*/
+	/* If 'r' all files are rdlock. If number of slashs > 0 no changes will be made inside root directory */
+	if(nNodes > 1 || arg == 'r'){                
 		inode_lock(current_inumber,'r');
 	}
-	else if (nNodes == 1){                         /*If number of slash == 0 means changes will be made inside root directory*/       
+	/* If number of slash == 0 means changes will be made inside root directory */       
+	else if (nNodes == 1){                         
 		inode_lock(current_inumber, 'w');
 	}
 
@@ -552,7 +597,7 @@ int lockPath(char* name, int* array, char arg){
 	*/
     while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {
 
-		if(nNodes >= 3 || arg == 'r'){          
+		if(nNodes > 2 || arg == 'r'){          
 			inode_lock(current_inumber,'r');
 		}
 		else{                                    
@@ -570,7 +615,7 @@ int lockPath(char* name, int* array, char arg){
 }
 
 /**
- * Unlocks inodes inside given array.
+ * Unlocks inodes.
  * @param array: array of inode_numbers to unlock
  * @param counter: number of inode_numbers in array
 */

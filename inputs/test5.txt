@@ -28,10 +28,10 @@ c /e/f3 d
 #
 # Deadlock entre duas tarefas
 # Estas operações devem ocorrer com sucesso
-m /a/b /c/b
-m /c/d /a/d
-m /a/b2 /c/b2
-m /c/d2 /a/d2
+#m /a/b /c/b
+#m /c/d /a/d
+#m /a/b2 /c/b2
+#m /c/d2 /a/d2
 #
 # Agora, testar que não tentamos navegar dentro de ficheiros
 c /x f
@@ -41,15 +41,15 @@ c /x/y/w/z f
 #
 # 3-way deadlock
 # Estas operações também devem ocorrer com sucesso
-m /a/b3 /e/b3
-m /e/f /c/f
-m /c/d3 /a/d3
-m /a/b4 /e/b4
-m /e/f2 /c/f2
-m /c/d4 /a/d4
-m /a/b5 /e/b5
-m /e/f3 /c/f3
-m /c/d5 /a/d5
+#m /a/b3 /e/b3
+#m /e/f /c/f
+#m /c/d3 /a/d3
+#m /a/b4 /e/b4
+#m /e/f2 /c/f2
+#m /c/d4 /a/d4
+#m /a/b5 /e/b5
+#m /e/f3 /c/f3
+#m /c/d5 /a/d5
 #
 ## Self-deadlocks
 ## Deadlocks dentro da própria tarefa (por causa dos dois argumentos)
@@ -57,9 +57,16 @@ m /c/d5 /a/d5
 ## devem usar locks de escrita para "/" e "/a", não de leitura
 #m /y /a/y
 #m /a/z /z
+#m /a/b/c /a/f
+#c a/b/c f
+#m a/b/c/d a/b/f     4  3
+#a a -> a   rd    3 2    array a 
+#b b -> b   wr     2 1         b 
+#c f -> c    wr                c  (f)  
+#d   -> d    1 0  wr           d
 ##
 ## Deteção de loops - /!\ estas operações devem falhar (mesmo com 1 tarefa) /!\
-m /a /a/a
-m /c /c/c
-m /e /e/e
-m /a/b/c /a/b/c/d
+#m /a /a/a
+#m /c /c/c
+#m /e /e/e
+#m /a/b/c /a/b/c/d
