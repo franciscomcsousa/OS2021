@@ -7,17 +7,17 @@
 #include "../tecnicofs-api-constants.h"
 
 inode_t inode_table[INODE_TABLE_SIZE];
-pthread_rwlock_t lock; /*Used to prevent conflits while creating a new inode with inode_create()*/
+pthread_rwlock_t lock; /* Used to prevent conflits while creating a new inode with inode_create() */
 
-/*
+/**
  * Sleeps for synchronization testing.
+ * @param cycles: number of cycles
  */
 void insert_delay(int cycles) {
     for (int i = 0; i < cycles; i++) {}
 }
 
-
-/*
+/**
  * Initializes the i-nodes table.
  */
 void inode_table_init() {
@@ -39,10 +39,9 @@ void inode_table_init() {
     }
 }
 
-/*
+/**
  * Releases the allocated memory for the i-nodes tables.
  */
-
 void inode_table_destroy() {
 
     /*lock for inode_create*/
@@ -65,13 +64,10 @@ void inode_table_destroy() {
     }
 }
 
-/*
+/**
  * Creates a new i-node in the table with the given information.
- * Input:
- *  - nType: the type of the node (file or directory)
- * Returns:
- *  inumber: identifier of the new i-node, if successfully created
- *     FAIL: if an error occurs
+ * @param nType: the type of the node (file or directory)
+ * @return inumber of FAIL
  */
 int inode_create(type nType) {
     /* Used for testing synchronization speedup */
@@ -111,11 +107,10 @@ int inode_create(type nType) {
     return FAIL;
 }
 
-/*
+/**
  * Deletes the i-node.
- * Input:
- *  - inumber: identifier of the i-node
- * Returns: SUCCESS or FAIL
+ * @param inumber: identifier of the i-node
+ * @return SUCCESS or FAIL
  */
 int inode_delete(int inumber) {
     /* Used for testing synchronization speedup */
@@ -134,14 +129,13 @@ int inode_delete(int inumber) {
     return SUCCESS;
 }
 
-/*
+/**
  * Copies the contents of the i-node into the arguments.
  * Only the fields referenced by non-null arguments are copied.
- * Input:
- *  - inumber: identifier of the i-node
- *  - nType: pointer to type
- *  - data: pointer to data
- * Returns: SUCCESS or FAIL
+ * @param inumber: identifier of the i-node
+ * @param nType: pointer to type
+ * @param data: pointer to data
+ * @return SUCCESS or FAIL
  */
 int inode_get(int inumber, type *nType, union Data *data) {
     /* Used for testing synchronization speedup */
@@ -161,13 +155,11 @@ int inode_get(int inumber, type *nType, union Data *data) {
     return SUCCESS;
 }
 
-
-/*
+/**
  * Resets an entry for a directory.
- * Input:
- *  - inumber: identifier of the i-node
- *  - sub_inumber: identifier of the sub i-node entry
- * Returns: SUCCESS or FAIL
+ * @param inumber: identifier of the i-node
+ * @param sub_inumber: identifier of the sub i-node entry
+ * @return SUCCESS or FAIL
  */
 int dir_reset_entry(int inumber, int sub_inumber) {
     /* Used for testing synchronization speedup */
@@ -198,14 +190,12 @@ int dir_reset_entry(int inumber, int sub_inumber) {
     return FAIL;
 }
 
-
-/*
+/**
  * Adds an entry to the i-node directory data.
- * Input:
- *  - inumber: identifier of the i-node
- *  - sub_inumber: identifier of the sub i-node entry
- *  - sub_name: name of the sub i-node entry 
- * Returns: SUCCESS or FAIL
+ * @param inumber: identifier of the i-node
+ * @param sub_inumber: identifier of the sub i-node entry
+ * @param sub_name: name of the sub i-node entry 
+ * @return SUCCESS or FAIL
  */
 int dir_add_entry(int inumber, int sub_inumber, char *sub_name) {
     /* Used for testing synchronization speedup */
@@ -242,12 +232,11 @@ int dir_add_entry(int inumber, int sub_inumber, char *sub_name) {
     return FAIL;
 }
 
-
-/*
+/**
  * Prints the i-nodes table.
- * Input:
- *  - inumber: identifier of the i-node
- *  - name: pointer to the name of current file/dir
+ * @param fp: pointer to file
+ * @param inumber: identifier of the i-node
+ * @param name: pointer to the name of current file/dir
  */
 void inode_print_tree(FILE *fp, int inumber, char *name) {
     if (inode_table[inumber].nodeType == T_FILE) {
@@ -271,38 +260,44 @@ void inode_print_tree(FILE *fp, int inumber, char *name) {
 
 /**
  * Locks inode.
- * @param inumber
- * @param flag
+ * @param inumber: identifier of the i-node
+ * @param flag: type of lock
+ * @return SUCCESS or FAIL
 */
-int inode_lock(int inumber,char flag) {
+int inode_lock(int inumber,char* flag) {
     if ((inumber < 0) || (inumber > INODE_TABLE_SIZE) || (inode_table[inumber].nodeType == T_NONE)) {
         printf("inode_get_lock: invalid inumber %d\n", inumber);
         return FAIL;
     }
 
-    if(flag == 'w'){
-        //pthread_rwlock_trywrlock(&inode_table[inumber].rwl);
+    if(!strcmp("w",flag)){
         if(pthread_rwlock_wrlock(&inode_table[inumber].rwl) != 0){
             fprintf(stderr, "Error: lock wrlock error\n");
             exit(EXIT_FAILURE);
         }
     }
-    else if(flag == 'r'){
-        //pthread_rwlock_tryrdlock(&inode_table[inumber].rwl);
+    else if(!strcmp("r",flag)){
         if(pthread_rwlock_rdlock(&inode_table[inumber].rwl) != 0){
             fprintf(stderr, "Error: lock rdlock error\n");
             exit(EXIT_FAILURE);
         }
     }
+    else if(!strcmp("mw",flag)){
+        return pthread_rwlock_trywrlock(&inode_table[inumber].rwl);
+    }
+    else if(!strcmp("mr",flag)){
+        return pthread_rwlock_tryrdlock(&inode_table[inumber].rwl);
+    }
     else
         exit(EXIT_FAILURE);
     
-    return SUCCESS;
+    return 1;
 }
 
 /**
  * Unlocks inode.
- * @param inumber
+ * @param inumber: identifier of the i-node
+ * @return SUCESS
 */
 int inode_unlock(int inumber){
     if(pthread_rwlock_unlock(&inode_table[inumber].rwl) != 0){
@@ -314,7 +309,8 @@ int inode_unlock(int inumber){
 
 /**
  * Returns lock from inumber.
- * @param inumber
+ * @param inumber: identifier of the i-node
+ * @return i-node lock
 */
 pthread_rwlock_t* getlock(int inumber){
     if ((inumber < 0) || (inumber > INODE_TABLE_SIZE) || (inode_table[inumber].nodeType == T_NONE)) {

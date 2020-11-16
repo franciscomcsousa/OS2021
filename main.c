@@ -14,9 +14,9 @@
 #define SUCCESS 0
 #define ENDOFFILE 1
 
+struct timeval t1,t2;
 pthread_mutex_t mutexfile;
 pthread_cond_t canInsert, canRemove;
-struct timeval t1,t2;
 
 char buffer[BUFFER_SIZE][MAX_INPUT_SIZE];  //circular buffer
 int counter = 0;                           //number of commands inside buffer
@@ -24,7 +24,7 @@ int insertPointer = 0;                     //pointer to next free location to in
 int removePointer = 0;                     //pointer to next command to be read
 
 /**
- * Inserts a command from a text file to a circular buffer.
+ * Inserts a command in the buffer.
  * @param data
 */
 int insertCommand(char* data){
@@ -52,7 +52,7 @@ int insertCommand(char* data){
 }
 
 /**
- * Removes a command from the buffer to be executed.
+ * Removes a command from the buffer.
  * @param array
 */
 int removeCommand(char* array){
@@ -149,8 +149,8 @@ void processInput(FILE* fp_input){
             }
         }
     }
-    insertCommand(END);   //After reading everyting creates a command END to signal the end of the file
-                         //Allows threads to end so that the program can continue running
+    insertCommand(END);   //After reading everyting creates a command END to signal the end of the file.
+                         //Allows threads to end so that the program can finish.
 }
 
 void applyCommands(){
@@ -221,7 +221,7 @@ void applyCommands(){
 }
 
 /**
- * Called during thread create.
+ * Auxiliar function called during thread create.
 */
 void *applyCommands_aux(){
     applyCommands();
@@ -275,22 +275,23 @@ void verifyInput(int argc, char* argv[]){
 }
 
 /**
- * Init mutex and cond used to process file.
+ * Inicializes mutex and conditional variables used to process file.
 */
 void init_locks_file(){
     pthread_mutex_init(&mutexfile,NULL);
     pthread_cond_init(&canInsert,NULL);
-    pthread_cond_init(&canRemove,NULL);  //é preciso passar algo ou basta NULL?
+    pthread_cond_init(&canRemove,NULL);
 }
 
 /**
- * Destroys mutex and cond used to process file.
+ * Destroys mutex and conditional variables used to process file.
 */
 void destroy_locks_file(){
     pthread_mutex_destroy(&mutexfile);
     pthread_cond_destroy(&canInsert);
     pthread_cond_destroy(&canRemove);
 }
+
 /**
  * Registers Time.
  * @param mode: 's' to start timer, 'e' to end
@@ -314,7 +315,7 @@ void Timer(char mode){
 }
 
 /**
- * Calculates and prints timer.
+ * Calculates and prints execution time.
 */
 void executionTime(){
     double time = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec)/1000000.0;
@@ -395,7 +396,7 @@ int main(int argc, char* argv[]) {
     fclose(fp_output);
     fclose(fp_input);
 
-    /* Release allocated memory and destroys locks*/
+    /* Release allocated memory and destroys locks */
     free(tid);
     destroy_locks_file();
     destroy_fs();
