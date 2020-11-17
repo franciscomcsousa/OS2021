@@ -178,7 +178,7 @@ int delete(char *name){
 
 	int size;
 	int locked_inodes[INODE_TABLE_SIZE];
-	pthread_rwlock_t* rwl;
+	pthread_rwlock_t* lock;
 
 	size = lockPath(name,locked_inodes,"w");
 
@@ -214,7 +214,7 @@ int delete(char *name){
 
 	inode_get(child_inumber, &cType, &cdata);
 
-	if((rwl = getlock(child_inumber)) == NULL){
+	if((lock = getlock(child_inumber)) == NULL){
 		return FAIL;
 	}
 
@@ -241,7 +241,7 @@ int delete(char *name){
 	}
 
 	/* unlocks deleted inode */
-	if(pthread_rwlock_unlock(rwl) != 0){
+	if(pthread_rwlock_unlock(lock) != 0){
         fprintf(stderr, "Error: rwlock unlock error\n");
         exit(EXIT_FAILURE);
     }
@@ -253,6 +253,7 @@ int delete(char *name){
 /**
  * Lookup for a given path.
  * @param name: path of node
+ * @param flag: -l or -u 
  * @return inumber or FAIL
  */
 int lookup(char *name, char flag) {
@@ -293,18 +294,9 @@ int lookup(char *name, char flag) {
 	return current_inumber;
 }
 
-int countChar(char* path,char c){
-    int count = 0;
-
-    for(int i=0; path[i]!='\0'; i++){
-        if(path[i] == c)
-            count++;
-    }
-    return count;
-}
-
 /**
  * Verifies loops in move command.
+ * If the destiny path is a subdirectory of the path, it causes a loop.
  * @param path: path of node
  * @param dest: destiny path
  * @return SUCCESS or FAIL
@@ -352,7 +344,7 @@ int move(char* path, char* dest){
 
 	char name_copy[MAX_FILE_NAME];
 
-	int size,size_dest;
+	int size, size_dest, value;
 	int locked_inodes[INODE_TABLE_SIZE], locked_inodes_dest[INODE_TABLE_SIZE];
 
 	type ptype, ptype_dest;
@@ -364,7 +356,7 @@ int move(char* path, char* dest){
 	}
 
     /* to prevent deadlocks, locks are made in alphabetical order*/
-	int value = strcmp(path,dest);
+	value = strcmp(path,dest);
 	size = strlen(path);
 	size_dest = strlen(dest);
 
@@ -613,9 +605,9 @@ int lockPath(char* name, int* array, char* arg){
  * @param counter: number of inode_numbers in array
 */
 void unlock(int* array, int counter){
-	printf("unlocking\n");
+	//printf("unlocking\n");
 	for(counter--;counter>=0;counter--){
-		printf("%d\n",array[counter]);
+		//printf("%d\n",array[counter]);
 		inode_unlock(array[counter]);
 	}
 }

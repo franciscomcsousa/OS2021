@@ -159,7 +159,7 @@ void applyCommands(){
 
     while (1){
         
-        if(removeCommand(input) != EXIT_SUCCESS)
+        if(removeCommand(input) == ENDOFFILE)
            break;
 
         char token, type;

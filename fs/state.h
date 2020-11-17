@@ -15,7 +15,7 @@
 #define SUCCESS 0
 #define FAIL -1
 
-#define DELAY 50000000
+#define DELAY 500000
 
 
 /*
@@ -41,7 +41,6 @@ typedef struct inode_t {
 	type nodeType;
 	union Data data;
 	pthread_rwlock_t rwl;
-    /* more i-node attributes will be added in future exercises */
 } inode_t;
 
 
@@ -57,6 +56,6 @@ int dir_add_entry(int inumber, int sub_inumber, char *sub_name);
 void inode_print_tree(FILE *fp, int inumber, char *name);
 int inode_lock(int inumber,char* flag);
 int inode_unlock(int inumber);
-pthread_rwlock_t* getlock(int number);
+pthread_rwlock_t* getlock(int inumber);
 
 #endif /* INODES_H */
