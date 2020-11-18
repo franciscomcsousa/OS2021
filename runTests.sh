@@ -18,14 +18,14 @@ then
 
 else
     mkdir ${OUTPUTDIR}
-    for FILEPATH in $INPUTDIR/*.txt
+    for FILEPATH in "$INPUTDIR"/*.txt
     do
-        FILENAME=$(basename $FILEPATH) 
+        FILENAME=$(basename "$FILEPATH") 
         for i in $(seq 1 ${MAXTHREADS})
         do                                                               
-            echo InputFile="${FILENAME//.txt}" NumThreads="$i"                                            
+            echo InputFile= "${FILENAME}" NumThreads= "$i"                                            
             OUTPUTFILENAME=${FILENAME//.txt}-$i                                                 
-            ./tecnicofs $FILEPATH ${OUTPUTDIR}/${OUTPUTFILENAME}.txt $i | grep "TecnicoFS" 
+            ./tecnicofs "$FILEPATH" ${OUTPUTDIR}/${OUTPUTFILENAME}.txt $i | grep "TecnicoFS" 
         done     
     done
 fi
