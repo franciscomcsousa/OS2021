@@ -7,9 +7,8 @@
 #include <sys/time.h>
 #include "fs/operations.h"
 
-#define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
-#define BUFFER_SIZE 10
+#define BUFFER_SIZE 9
 #define END "EOF"
 #define SUCCESS 0
 #define ENDOFFILE 1
@@ -25,7 +24,7 @@ int removePointer = 0;                     //pointer to next command to be read
 
 /**
  * Inserts a command in the buffer.
- * @param data
+ * @param data: to insert in the buffer
 */
 int insertCommand(char* data){
 
@@ -53,7 +52,7 @@ int insertCommand(char* data){
 
 /**
  * Removes a command from the buffer.
- * @param array
+ * @param array: to store a command
 */
 int removeCommand(char* array){
 

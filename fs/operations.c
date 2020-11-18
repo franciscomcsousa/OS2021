@@ -9,7 +9,7 @@
  * @param path: the path to split. ATENTION: the function may alter this parameter
  * @param parent: reference to a char*, to store parent path
  * @param child: reference to a char*, to store child file name
- */
+*/
 void split_parent_child_from_path(char * path, char ** parent, char ** child) {
 
 	int n_slashes = 0, last_slash_location = 0;
@@ -39,9 +39,9 @@ void split_parent_child_from_path(char * path, char ** parent, char ** child) {
 
 }
 
-/*
+/**
  * Initializes tecnicofs and creates root node.
- */
+*/
 void init_fs() {
 	inode_table_init();
 	
@@ -54,9 +54,9 @@ void init_fs() {
 	}
 }
 
-/*
+/**
  * Destroy tecnicofs and inode table.
- */
+*/
 void destroy_fs() {
 	inode_table_destroy();
 }
@@ -65,7 +65,7 @@ void destroy_fs() {
  * Checks if content of directory is not empty.
  * @param entries: entries of directory
  * @return SUCCESS or FAIL
- */
+*/
 int is_dir_empty(DirEntry *dirEntries) {
 	if (dirEntries == NULL) {
 		return FAIL;
@@ -83,7 +83,7 @@ int is_dir_empty(DirEntry *dirEntries) {
  * @param name: path of node
  * @param entries: entries of directory
  * @return inumber or FAIL
- */
+*/
 int lookup_sub_node(char *name, DirEntry *entries) {
 	if (entries == NULL) {
 		return FAIL;
@@ -101,7 +101,7 @@ int lookup_sub_node(char *name, DirEntry *entries) {
  * @param name: path of node
  * @param nodeType: type of node
  * @return SUCESS or FAIL
- */
+*/
 int create(char *name, type nodeType){
 
 	int parent_inumber, child_inumber;
@@ -167,7 +167,7 @@ int create(char *name, type nodeType){
  * Deletes a node given a path.
  * @param name: path of node
  * @return SUCCESS OR FAIL
- */
+*/
 int delete(char *name){
 
 	int parent_inumber, child_inumber;
@@ -255,7 +255,7 @@ int delete(char *name){
  * @param name: path of node
  * @param flag: -l or -u 
  * @return inumber or FAIL
- */
+*/
 int lookup(char *name, char flag) {
 	
 	char full_path[MAX_FILE_NAME];
@@ -265,7 +265,9 @@ int lookup(char *name, char flag) {
 	int size;
 	int locked_inodes[INODE_TABLE_SIZE];
 
-	if(flag == 'u')
+
+	/* if path is unlocked */
+	if(flag == 'u') 
 		size = lockPath(name,locked_inodes,"r");
 
 	strcpy(full_path, name);
@@ -355,7 +357,7 @@ int move(char* path, char* dest){
 		return FAIL;
 	}
 
-    /* to prevent deadlocks, locks are made in alphabetical order*/
+    /* to prevent deadlocks, locks are made according to the size of path, if the same, alphabetically */
 	value = strcmp(path,dest);
 	size = strlen(path);
 	size_dest = strlen(dest);
@@ -498,7 +500,7 @@ int countiNodes(char* fullpath){
  * 	it will rdlock every node
  * If it's called within move
  * 	Ex: m /a/b/c /a/z
- * 	it will FIRST wrlock 'a' rdlock 'root' THEN rwlock 'b' anc 'c'
+ * 	it will FIRST rdlock 'root' and wrlock 'a' THEN rwlock 'b' anc 'c'
  * 
  * This works by calculating the number of nodes (nNodes) in a given path.
  * Its start from the root decreasing the value of nNodes for each node locked.
@@ -515,15 +517,14 @@ int countiNodes(char* fullpath){
 */
 
 /**
- * Registers and locks inode of a given path.
+ * Registers and locks node of a given path.
  * @param name is the path where file will be created/destroyed/found
  * @param array is the array of inode_number that will be locked
  * @param arg is the type of operation. 
  * "r" -> will rdlock all nodes
  * "w" -> will wrlock modifiable nodes and rdlock the rest
  * "mw" -> will trywrlock modifiable nodes and tryrdlock the rest
- * where changes will be made and the inode being created/destroyed.
- * @return number of inodes locked
+ * @return number of nodes locked
 */
 int lockPath(char* name, int* array, char* arg){
 
@@ -566,7 +567,7 @@ int lockPath(char* name, int* array, char* arg){
 
 	/** 
 	 * Process the rest of path reducing in each iteration the value of nNodes. This way we will
-	 * know when we have reached a bide that needs to be wrlock instead of rdlock.
+	 * know when we have reached a node that needs to be wrlock instead of rdlock.
 	*/
     while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {
 
@@ -600,14 +601,12 @@ int lockPath(char* name, int* array, char* arg){
 }
 
 /**
- * Unlocks inodes.
+ * Unlocks nodes.
  * @param array: array of inode_numbers to unlock
- * @param counter: number of inode_numbers in array
+ * @param counter: number of node in array
 */
 void unlock(int* array, int counter){
-	//printf("unlocking\n");
 	for(counter--;counter>=0;counter--){
-		//printf("%d\n",array[counter]);
 		inode_unlock(array[counter]);
 	}
 }
@@ -615,7 +614,7 @@ void unlock(int* array, int counter){
 /**
  * Prints tecnicofs tree.
  * @param fp: pointer to file
- */
+*/
 void print_tecnicofs_tree(FILE *fp){
 	inode_print_tree(fp, FS_ROOT, "");
 }

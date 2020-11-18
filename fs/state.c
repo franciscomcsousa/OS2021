@@ -12,14 +12,14 @@ pthread_rwlock_t lock; /* Used to prevent conflits while creating a new inode wi
 /**
  * Sleeps for synchronization testing.
  * @param cycles: number of cycles
- */
+*/
 void insert_delay(int cycles) {
     for (int i = 0; i < cycles; i++) {}
 }
 
 /**
  * Initializes the i-nodes table.
- */
+*/
 void inode_table_init() {
 
     /*lock for inode_create*/
@@ -41,7 +41,7 @@ void inode_table_init() {
 
 /**
  * Releases the allocated memory for the i-nodes tables.
- */
+*/
 void inode_table_destroy() {
 
     /*lock for inode_create*/
@@ -68,7 +68,7 @@ void inode_table_destroy() {
  * Creates a new i-node in the table with the given information.
  * @param nType: the type of the node (file or directory)
  * @return inumber of FAIL
- */
+*/
 int inode_create(type nType) {
     /* Used for testing synchronization speedup */
     insert_delay(DELAY);
@@ -111,7 +111,7 @@ int inode_create(type nType) {
  * Deletes the i-node.
  * @param inumber: identifier of the i-node
  * @return SUCCESS or FAIL
- */
+*/
 int inode_delete(int inumber) {
     /* Used for testing synchronization speedup */
     insert_delay(DELAY);
@@ -136,7 +136,7 @@ int inode_delete(int inumber) {
  * @param nType: pointer to type
  * @param data: pointer to data
  * @return SUCCESS or FAIL
- */
+*/
 int inode_get(int inumber, type *nType, union Data *data) {
     /* Used for testing synchronization speedup */
     insert_delay(DELAY);
@@ -160,7 +160,7 @@ int inode_get(int inumber, type *nType, union Data *data) {
  * @param inumber: identifier of the i-node
  * @param sub_inumber: identifier of the sub i-node entry
  * @return SUCCESS or FAIL
- */
+*/
 int dir_reset_entry(int inumber, int sub_inumber) {
     /* Used for testing synchronization speedup */
     insert_delay(DELAY);
@@ -196,7 +196,7 @@ int dir_reset_entry(int inumber, int sub_inumber) {
  * @param sub_inumber: identifier of the sub i-node entry
  * @param sub_name: name of the sub i-node entry 
  * @return SUCCESS or FAIL
- */
+*/
 int dir_add_entry(int inumber, int sub_inumber, char *sub_name) {
     /* Used for testing synchronization speedup */
     insert_delay(DELAY);
@@ -237,7 +237,7 @@ int dir_add_entry(int inumber, int sub_inumber, char *sub_name) {
  * @param fp: pointer to file
  * @param inumber: identifier of the i-node
  * @param name: pointer to the name of current file/dir
- */
+*/
 void inode_print_tree(FILE *fp, int inumber, char *name) {
     if (inode_table[inumber].nodeType == T_FILE) {
         fprintf(fp, "%s\n", name);
@@ -314,7 +314,7 @@ int inode_unlock(int inumber){
 */
 pthread_rwlock_t* getlock(int inumber){
     if ((inumber < 0) || (inumber > INODE_TABLE_SIZE) || (inode_table[inumber].nodeType == T_NONE)) {
-        printf("inode_get_lock: invalid inumber %d\n", inumber);
+        printf("getlock: invalid inumber %d\n", inumber);
         return NULL;
     }
     return &inode_table[inumber].rwl;
