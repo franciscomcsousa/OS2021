@@ -1,7 +1,7 @@
 #ifndef API_H
 #define API_H
 
-#include "tecnicofs-api-constants.h"
+#include "../tecnicofs-api-constants.h"
 
 int tfsCreate(char *path, char nodeType);
 int tfsDelete(char *path);

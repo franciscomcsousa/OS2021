@@ -1,0 +1,7 @@
+c b d
+c b/c f
+c b/d d
+c b/d/e d
+c b/d/e/z f
+l b/d/e/z
+d b/d/e/z 
