@@ -7,11 +7,21 @@
 #include <sys/time.h>
 #include "fs/operations.h"
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/uio.h>
+#include <unistd.h>
+#include <sys/stat.h>
+
 #define MAX_INPUT_SIZE 100
 #define BUFFER_SIZE 9
 #define END "EOF"
 #define SUCCESS 0
 #define ENDOFFILE 1
+
+#define INDIM 30
+#define OUTDIM 512
 
 struct timeval t1,t2;
 pthread_mutex_t mutexfile;
@@ -262,12 +272,12 @@ FILE* openFile(char* argv[],char c){
  * @param argv: array from stdin given by user
 */
 void verifyInput(int argc, char* argv[]){
-    if (argc != 4){
+    if (argc != 3){
         fprintf(stderr, "Error: invalid number of arguments\n");
         exit(EXIT_FAILURE);
     }
     /*argv[3] refers to the number of threads*/
-    if (atoi(argv[3]) <= 0){
+    if (atoi(argv[1]) <= 0){
         fprintf(stderr, "Error: invalid number of threads\n");
         exit(EXIT_FAILURE);
     }
@@ -350,55 +360,114 @@ void threadJoin(pthread_t* tid, int numthreads){
     }
 }
 
+int setSockAddrUn(char *path, struct sockaddr_un *addr) {
+
+  if (addr == NULL)
+    return 0;
+
+  bzero((char *)addr, sizeof(struct sockaddr_un));
+  addr->sun_family = AF_UNIX;
+  strcpy(addr->sun_path, path);
+
+  return SUN_LEN(addr);
+}
+
 int main(int argc, char* argv[]) {
 
-    FILE* fp_input;
-    FILE* fp_output;
-    int numthreads = atoi(argv[3]);
+    //FILE* fp_input;
+    //FILE* fp_output;
+    //int numthreads = atoi(argv[3]);
 
     /* Verifies given input */
     verifyInput(argc, argv);
 
     /* Opens input and output files */
-    fp_input = openFile(argv,'r');
-    fp_output = openFile(argv,'w');
+    //fp_input = openFile(argv,'r');
+    //fp_output = openFile(argv,'w');
 
     /* Init mutex and cond */
-    init_locks_file();
+    //init_locks_file();
 
     /* Init filesystem and locks */
-    init_fs();
+    //init_fs();
 
     /* Creates array of thread id's */
-    pthread_t* tid = (pthread_t*) malloc(sizeof(pthread_t) * numthreads);
+    //pthread_t* tid = (pthread_t*) malloc(sizeof(pthread_t) * numthreads);
 
     /* Starts Timer */
-    Timer('s');
+    //Timer('s');
 
     /* Creates pool of threads to execute the commands inside the buffer */
-    threadCreate(tid,numthreads,applyCommands_aux);
+    //threadCreate(tid,numthreads,applyCommands_aux);
 
     /* Reads input file to buffer */
-    processInput(fp_input);
+    //processInput(fp_input);
 
     /* Joins threads */
-    threadJoin(tid,numthreads);
+    //threadJoin(tid,numthreads);
 
     /* Stops Timer */
-    Timer('e');
+    //Timer('e');
 
     /* Prints time and tree */
-    executionTime();
-    print_tecnicofs_tree(fp_output);
+    //executionTime();
+    //print_tecnicofs_tree(fp_output);
 
     /* Close input and output files */
-    fclose(fp_output);
-    fclose(fp_input);
+    //fclose(fp_output);
+    //fclose(fp_input);
 
     /* Release allocated memory and destroys locks */
-    free(tid);
-    destroy_locks_file();
-    destroy_fs();
+    //free(tid);
+    //destroy_locks_file();
+    //destroy_fs();
 
-    exit(EXIT_SUCCESS);
+    //exit(EXIT_SUCCESS);
+
+
+// SERVER
+
+    int sockfd;
+    struct sockaddr_un server_addr;
+    socklen_t addrlen;
+    char *path;
+
+    //verificacao de argc
+
+    if ((sockfd = socket(AF_UNIX,SOCK_DGRAM,0)) < 0){
+        perror("server:can't open socket");
+        exit(EXIT_FAILURE);
+    }
+
+    path = argv[2];
+
+    unlink(path);
+
+    addrlen = setSockAddrUn(argv[2],&server_addr);
+    if (bind(sockfd, (struct sockaddr *) &server_addr, addrlen) < 0) {
+        perror("server: bind error");
+        exit(EXIT_FAILURE);
+    }
+
+    while (1) {
+        struct sockaddr_un client_addr;
+        char in_buffer[INDIM], out_buffer[OUTDIM];
+        int c;
+
+        addrlen=sizeof(struct sockaddr_un);
+        c = recvfrom(sockfd, in_buffer, sizeof(in_buffer)-1, 0,(struct sockaddr *)&client_addr, &addrlen);
+        if (c <= 0) continue;
+        //Preventivo, caso o cliente nao tenha terminado a mensagem em '\0', 
+        in_buffer[c]='\0';
+        
+        printf("Recebeu mensagem de %s\n", client_addr.sun_path);
+
+        c = sprintf(out_buffer, "Ola' %s, que tal vai isso?", in_buffer);
+        
+        sendto(sockfd, out_buffer, c+1, 0, (struct sockaddr *)&client_addr, addrlen);
+  }
+
+  close(sockfd);
+  unlink(argv[1]);
+  exit(EXIT_SUCCESS);
 }
