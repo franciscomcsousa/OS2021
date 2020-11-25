@@ -46,13 +46,12 @@ void createSocketName(char* client_socket_name){
 /*----------------------------------------------------------------------API-FUNCTIONS------------------------------------------------------------------------------------------------*/
 
 int tfsCreate(char *filename, char nodeType) {
-  int servlen;
-  struct sockaddr_un serv_addr;
-  char buffer[MAX_INPUT_SIZE];
 
-  /* to avoid destroying filename */
-  strcpy(buffer,filename);
- 
+  int servlen;
+  char buffer[MAX_INPUT_SIZE];
+  struct sockaddr_un serv_addr;
+
+  sprintf(buffer,"%c %s %c",'c',filename,nodeType);
   servlen = setSockAddrUn(serverName, &serv_addr);
 
   if (sendto(client_sockfd, buffer, strlen(buffer)+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0) {
@@ -65,13 +64,29 @@ int tfsCreate(char *filename, char nodeType) {
     exit(EXIT_FAILURE);
   } 
 
-  printf("Recebeu resposta do servidor: %s\n", buffer);
-
-  return 0;
+  return atoi(buffer); //deve retornar aquilo que receber do servidor
 }
 
 int tfsDelete(char *path) {
-  return -1;
+
+  int servlen;
+  char buffer[MAX_INPUT_SIZE];
+  struct sockaddr_un serv_addr;
+
+  sprintf(buffer,"%c %s",'d',path);
+  servlen = setSockAddrUn(serverName, &serv_addr);
+
+  if (sendto(client_sockfd, buffer, strlen(buffer)+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0) {
+    perror("client: sendto error");
+    exit(EXIT_FAILURE);
+  } 
+
+  if (recvfrom(client_sockfd, buffer, sizeof(buffer), 0, 0, 0) < 0) {
+    perror("client: recvfrom error");
+    exit(EXIT_FAILURE);
+  } 
+
+  return atoi(buffer); //deve retornar aquilo que receber do servidor
 }
 
 int tfsMove(char *from, char *to) {

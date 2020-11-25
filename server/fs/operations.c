@@ -615,6 +615,6 @@ void unlock(int* array, int counter){
  * Prints tecnicofs tree.
  * @param fp: pointer to file
 */
-void print_tecnicofs_tree(FILE *fp){
-	inode_print_tree(fp, FS_ROOT, "");
+void print_tecnicofs_tree(){
+	inode_print_tree(stdout, FS_ROOT, "");
 }

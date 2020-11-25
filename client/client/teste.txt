@@ -1,1 +1,5 @@
 c a d
+c b d
+c a/f f
+c a d
+d a/f

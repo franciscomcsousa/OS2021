@@ -13,6 +13,6 @@ int move(char* path, char* dest);
 int countiNodes(char* fullpath);
 int lockPath(char* name, int* array, char* arg);
 void unlock(int* array, int counter);
-void print_tecnicofs_tree(FILE *fp);
+void print_tecnicofs_tree();
 
 #endif /* FS_H */
