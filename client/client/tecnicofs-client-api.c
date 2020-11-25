@@ -6,8 +6,14 @@
 #include <sys/un.h>
 #include <stdio.h>
 
-int sockfd_global;
+int client_sockfd;
+char* client_socket_name;
+extern char* serverName;
 
+/*----------------------------------------------------------------------AUX-FUNCTIONS------------------------------------------------------------------------------------------------*/
+/**
+ * Clears socket address.
+*/
 int setSockAddrUn(char *path, struct sockaddr_un *addr) {
 
   if (addr == NULL)
@@ -20,19 +26,41 @@ int setSockAddrUn(char *path, struct sockaddr_un *addr) {
   return SUN_LEN(addr);
 }
 
+/**
+ * Creates socket name based on a standart name plus the pid of the client.
+*/
+void createSocketName(char* client_socket_name){
+  int pid = (int) getpid();
+  char socket_name[MAX_SOCKET_NAME];
+  char pid_string[MAX_FILE_NAME];
+
+  /* converts pid from int to string */
+  sprintf(pid_string,"%d",pid);
+
+  strcpy(socket_name,CLIENT_SOCKET_NAME);
+
+  /* concatenate socket_name and pid_string to create unique name */
+  strcpy(client_socket_name,strcat(socket_name,pid_string));
+}
+
+/*----------------------------------------------------------------------API-FUNCTIONS------------------------------------------------------------------------------------------------*/
+
 int tfsCreate(char *filename, char nodeType) {
   int servlen;
   struct sockaddr_un serv_addr;
-  char buffer[100];
-  strcpy(buffer,"Hello World");
-  servlen = setSockAddrUn("/tmp/server", &serv_addr);
+  char buffer[MAX_INPUT_SIZE];
 
-  if (sendto(sockfd_global, buffer, strlen(buffer)+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0) {
+  /* to avoid destroying filename */
+  strcpy(buffer,filename);
+ 
+  servlen = setSockAddrUn(serverName, &serv_addr);
+
+  if (sendto(client_sockfd, buffer, strlen(buffer)+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0) {
     perror("client: sendto error");
     exit(EXIT_FAILURE);
   } 
 
-  if (recvfrom(sockfd_global, buffer, sizeof(buffer), 0, 0, 0) < 0) {
+  if (recvfrom(client_sockfd, buffer, sizeof(buffer), 0, 0, 0) < 0) {
     perror("client: recvfrom error");
     exit(EXIT_FAILURE);
   } 
@@ -62,32 +90,33 @@ int tfsMount(char * sockPath) {
   int sockfd;
   socklen_t clilen;
   struct sockaddr_un client_addr;
+  char socket_name[MAX_SOCKET_NAME];
 
   if ((sockfd = socket(AF_UNIX, SOCK_DGRAM, 0) ) < 0) { 
     perror("client: can't open socket");
     exit(EXIT_FAILURE);
   }
-
-  char socket_client[100],pid_s[100],client[100];
-  int pid;
-  strcpy(client,"/tmp/client");
-  pid = (int)getpid();
-  sprintf(pid_s,"%d",pid);
-  strcpy(socket_client,strcat(client, pid_s));
   
+  createSocketName(socket_name);
 
-  unlink(socket_client);
-  clilen = setSockAddrUn (socket_client, &client_addr);
+  unlink(socket_name);
+  clilen = setSockAddrUn (socket_name, &client_addr);
+
   if (bind(sockfd, (struct sockaddr *) &client_addr, clilen) < 0) {
     perror("client: bind error");
     exit(EXIT_FAILURE);
   } 
 
-  sockfd_global = sockfd;
+  /* makes it global so that other functions can use it */
+  client_sockfd = sockfd;
+  client_socket_name = socket_name;
 
   return 0;
 }
 
 int tfsUnmount() {
-  return -1;
+
+  close(client_sockfd);
+  unlink(client_socket_name);
+  return 0;
 }

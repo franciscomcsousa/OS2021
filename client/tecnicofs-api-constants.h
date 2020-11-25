@@ -4,6 +4,8 @@
 
 #define MAX_FILE_NAME 100
 #define MAX_INPUT_SIZE 100
+#define MAX_SOCKET_NAME 100
+#define CLIENT_SOCKET_NAME "/tmp/client"
 
 
 typedef enum permission { NONE, WRITE, READ, RW } permission;

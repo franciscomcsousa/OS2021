@@ -238,35 +238,6 @@ void *applyCommands_aux(){
 }
 
 /**
- * Opens file.
- * @param argv: array from stdin given by user
- * @param c: file mode
-*/
-FILE* openFile(char* argv[],char c){
-    FILE* fp;
-    if (c == 'r'){
-        fp = fopen(argv[1],"r");
-
-        if (fp == NULL){                     
-            fprintf(stderr,"Error: invalid input file\n");
-            exit(EXIT_FAILURE);
-        }
-        return fp;
-    }
-    else if (c == 'w'){
-        fp = fopen(argv[2],"w");
-
-        if (fp == NULL){
-            fprintf(stderr,"Error: invalid output file\n");
-            exit(EXIT_FAILURE);
-        }
-        return fp;
-    }
-    else
-        exit(EXIT_FAILURE);
-}
-
-/**
  * Verifies the validity of the arguments given as input.
  * @param argc: number of arguments given by user
  * @param argv: array from stdin given by user
@@ -299,36 +270,6 @@ void destroy_locks_file(){
     pthread_mutex_destroy(&mutexfile);
     pthread_cond_destroy(&canInsert);
     pthread_cond_destroy(&canRemove);
-}
-
-/**
- * Registers Time.
- * @param mode: 's' to start timer, 'e' to end
-*/
-void Timer(char mode){
-
-    if('s' == mode){
-        if (gettimeofday(&t1,NULL) != 0){
-            fprintf(stderr, "Error: system time\n");
-            exit(EXIT_FAILURE);
-        }
-    }
-    else if('e' == mode){
-        if (gettimeofday(&t2,NULL) != 0){
-            fprintf(stderr, "Error: system time\n");
-            exit(EXIT_FAILURE);
-        }
-    }
-    else 
-        exit(EXIT_FAILURE);
-}
-
-/**
- * Calculates and prints execution time.
-*/
-void executionTime(){
-    double time = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec)/1000000.0;
-    printf("TecnicoFS completed in %.4f seconds.\n",time);
 }
 
 /**
@@ -374,16 +315,10 @@ int setSockAddrUn(char *path, struct sockaddr_un *addr) {
 
 int main(int argc, char* argv[]) {
 
-    //FILE* fp_input;
-    //FILE* fp_output;
     //int numthreads = atoi(argv[3]);
 
     /* Verifies given input */
     verifyInput(argc, argv);
-
-    /* Opens input and output files */
-    //fp_input = openFile(argv,'r');
-    //fp_output = openFile(argv,'w');
 
     /* Init mutex and cond */
     //init_locks_file();
@@ -394,9 +329,6 @@ int main(int argc, char* argv[]) {
     /* Creates array of thread id's */
     //pthread_t* tid = (pthread_t*) malloc(sizeof(pthread_t) * numthreads);
 
-    /* Starts Timer */
-    //Timer('s');
-
     /* Creates pool of threads to execute the commands inside the buffer */
     //threadCreate(tid,numthreads,applyCommands_aux);
 
@@ -406,33 +338,12 @@ int main(int argc, char* argv[]) {
     /* Joins threads */
     //threadJoin(tid,numthreads);
 
-    /* Stops Timer */
-    //Timer('e');
-
-    /* Prints time and tree */
-    //executionTime();
-    //print_tecnicofs_tree(fp_output);
-
-    /* Close input and output files */
-    //fclose(fp_output);
-    //fclose(fp_input);
-
-    /* Release allocated memory and destroys locks */
-    //free(tid);
-    //destroy_locks_file();
-    //destroy_fs();
-
-    //exit(EXIT_SUCCESS);
-
-
 // SERVER
 
     int sockfd;
     struct sockaddr_un server_addr;
     socklen_t addrlen;
     char *path;
-
-    //verificacao de argc
 
     if ((sockfd = socket(AF_UNIX,SOCK_DGRAM,0)) < 0){
         perror("server:can't open socket");
@@ -456,7 +367,8 @@ int main(int argc, char* argv[]) {
 
         addrlen=sizeof(struct sockaddr_un);
         c = recvfrom(sockfd, in_buffer, sizeof(in_buffer)-1, 0,(struct sockaddr *)&client_addr, &addrlen);
-        if (c <= 0) continue;
+        if (c <= 0) 
+            continue;
         //Preventivo, caso o cliente nao tenha terminado a mensagem em '\0', 
         in_buffer[c]='\0';
         
@@ -467,7 +379,13 @@ int main(int argc, char* argv[]) {
         sendto(sockfd, out_buffer, c+1, 0, (struct sockaddr *)&client_addr, addrlen);
   }
 
-  close(sockfd);
-  unlink(argv[1]);
-  exit(EXIT_SUCCESS);
+/* server never leaves the loop and therefore this is never executed */
+    close(sockfd);
+    unlink(argv[1]);
+    exit(EXIT_SUCCESS);
+
+    /* Release allocated memory and destroys locks */
+    //free(tid);
+    //destroy_locks_file();
+    //destroy_fs();
 }
