@@ -3,3 +3,4 @@ c b d
 c a/f f
 c a d
 d a/f
+p TESTE.TXT

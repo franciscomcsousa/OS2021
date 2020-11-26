@@ -23,6 +23,8 @@ void errorParse(){
     exit(EXIT_FAILURE);
 }
 
+// counter = numthreads;
+
 void applyCommands(){
 
     int c;
@@ -33,7 +35,23 @@ void applyCommands(){
 
     while (1){
 
+        /**
+         * pthread_mutex_lock(&mutex);
+         * if(flag == 1)
+         *  counter--;
+         *  if(counter == 0)
+         *      pthread_cond_signal(&podeExecutar);
+         *  while(flag == 1)
+         *      pthread_cond_wait(&podeContinuar,&mutex);
+         * flag = 0;
+         * pthread_mutex_unlock(&mutex);
+        */
+
+
         c = recvfrom(sockfd, input, sizeof(input)-1, 0,(struct sockaddr *)&client_addr, &addrlen);
+
+        //for(long i =0;i<100000000;i++);
+
         if (c<=0)
             break;
         input[c]='\0';
@@ -88,6 +106,21 @@ void applyCommands(){
                 Result = move(path,pathdest);
                 break;
 
+            case 'p':
+                printf("Print tecnicofs tree\n");
+                Result = print_tecnicofs_tree(name);
+                break;
+                /**
+                 * pthread_mutex_lock(&mutex)
+                 * flag = 1
+                 * while(counter != 0)
+                 *  pthread_cond_wait(&podeComecar,&mutex);
+                 * pthread_mutex_unlock(&mutex)
+                 * print()
+                 * pthread_cond_broadcast(&podeContinuar);
+                */
+                break;
+
             default: { /* error */
                 fprintf(stderr, "Error: command to apply\n");
                 exit(EXIT_FAILURE);
@@ -95,7 +128,6 @@ void applyCommands(){
         }
         sprintf(input,"%d",Result);
         sendto(sockfd, input, strlen(input)+1, 0, (struct sockaddr *)&client_addr, addrlen);
-        print_tecnicofs_tree();  //apenas para debug
     }
 }
 
@@ -206,6 +238,8 @@ int main(int argc, char* argv[]) {
     /* Creates pool of threads to execute the commands inside the buffer */
     threadCreate(tid,numthreads,applyCommands_aux);
 
+
+    /*------------------------------------------------------------------------------------------*/
     /* Joins threads */
     threadJoin(tid,numthreads);
 

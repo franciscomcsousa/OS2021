@@ -99,6 +99,15 @@ void *processInput() {
                 else
                   printf("Unable to move: %s to %s\n", arg1, arg2);
                 break;
+            case 'p':
+                if(numTokens != 2)
+                    errorParse();
+                res = tfsPrint(arg1);
+                if (!res)
+                    printf("Printed tecnicofs tree\n");
+                else
+                    printf("Unable to print tecnicofs tree\n");
+                break;           
             case '#':
                 break;
             default: { /* error */
