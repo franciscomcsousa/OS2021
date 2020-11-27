@@ -18,6 +18,12 @@
 
 int sockfd; //server socket
 
+pthread_mutex_t mutex;
+pthread_mutex_t mutexEnd;
+pthread_cond_t canPrint, canContinue;
+int flag = 0;
+int count = 0;
+
 void errorParse(){
     fprintf(stderr, "Error: command invalid\n");
     exit(EXIT_FAILURE);
@@ -61,6 +67,13 @@ void applyCommands(){
         char name[MAX_INPUT_SIZE];
         char path[MAX_INPUT_SIZE];
         char pathdest[MAX_INPUT_SIZE];
+
+
+        pthread_mutex_lock(&mutex);
+        while (flag == 1)
+            pthread_cond_wait(&canContinue, &mutex);
+        count++;
+        pthread_mutex_unlock(&mutex);
 
         if(input[0] == 'm')
             numTokens = sscanf(input, "%c %s %s", &token, path, pathdest); // different sscanf for move command
@@ -108,8 +121,7 @@ void applyCommands(){
 
             case 'p':
                 printf("Print tecnicofs tree\n");
-                Result = print_tecnicofs_tree(name);
-                break;
+                //Result = print_tecnicofs_tree(name);
                 /**
                  * pthread_mutex_lock(&mutex)
                  * flag = 1
@@ -119,6 +131,14 @@ void applyCommands(){
                  * print()
                  * pthread_cond_broadcast(&podeContinuar);
                 */
+                pthread_mutex_lock(&mutex);
+                flag = 1;
+                while (count != 0)
+                    pthread_cond_wait(&canPrint, &mutex);
+                Result = print_tecnicofs_tree(name);
+                flag = 0;
+                pthread_cond_signal(&canContinue);
+                pthread_mutex_unlock(&mutex);
                 break;
 
             default: { /* error */
@@ -127,6 +147,11 @@ void applyCommands(){
             }
         }
         sendto(sockfd, &Result, sizeof(Result), 0, (struct sockaddr *)&client_addr, addrlen);
+        pthread_mutex_lock(&mutex);
+        count--;
+        if (count == 0)
+            pthread_cond_signal(&canPrint);
+        pthread_mutex_unlock(&mutex);
     }
 }
 
@@ -218,12 +243,34 @@ void initSocket(char* argv2){
     }
 }
 
+/**
+ * Inicializes mutex and conditional variables used to process file.
+*/
+void init_locks_file(){
+    pthread_mutex_init(&mutex,NULL);
+    pthread_mutex_init(&mutexEnd,NULL);
+    pthread_cond_init(&canPrint,NULL);
+    pthread_cond_init(&canContinue,NULL);
+}
+
+/**
+ * Destroys mutex and conditional variables used to process file.
+*/
+void destroy_locks_file(){
+    pthread_mutex_destroy(&mutex);
+    pthread_mutex_destroy(&mutexEnd);
+    pthread_cond_destroy(&canPrint);
+    pthread_cond_destroy(&canContinue);
+}
+
 int main(int argc, char* argv[]) {
 
     int numthreads = atoi(argv[1]);
 
     /* Verifies given input */
     verifyInput(argc, argv);
+
+    init_locks_file();
 
     /* Init filesystem and locks */
     init_fs();
@@ -248,6 +295,7 @@ int main(int argc, char* argv[]) {
     destroy_fs();
 
     /* server never leaves the loop and therefore this is never executed */
+    destroy_locks_file();
     close(sockfd);
     unlink(argv[1]);
     exit(EXIT_SUCCESS);
