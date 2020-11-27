@@ -1,6 +1,9 @@
 c a d
 c b d
 c a/f f
+c a/g f
 c a d
 d a/f
+l a/g
+l c
 p TESTE.TXT

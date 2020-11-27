@@ -618,6 +618,8 @@ void unlock(int* array, int counter){
 int print_tecnicofs_tree(char *file){
 	FILE* fp;
 	fp = fopen(file,"w");
+	if (fp == NULL)
+		return FAIL;
 	inode_print_tree(fp, FS_ROOT, "");
 	fclose(fp);
 

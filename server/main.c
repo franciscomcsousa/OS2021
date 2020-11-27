@@ -47,10 +47,10 @@ void applyCommands(){
          * pthread_mutex_unlock(&mutex);
         */
 
-
         c = recvfrom(sockfd, input, sizeof(input)-1, 0,(struct sockaddr *)&client_addr, &addrlen);
-
-        //for(long i =0;i<100000000;i++);
+        
+        //printf("From the function, the thread id = %ld\n", pthread_self());
+        //for(long i =0;i<100000000;i++);  delay
 
         if (c<=0)
             break;
@@ -126,8 +126,7 @@ void applyCommands(){
                 exit(EXIT_FAILURE);
             }
         }
-        sprintf(input,"%d",Result);
-        sendto(sockfd, input, strlen(input)+1, 0, (struct sockaddr *)&client_addr, addrlen);
+        sendto(sockfd, &Result, sizeof(Result), 0, (struct sockaddr *)&client_addr, addrlen);
     }
 }
 
@@ -239,7 +238,8 @@ int main(int argc, char* argv[]) {
     threadCreate(tid,numthreads,applyCommands_aux);
 
 
-    /*------------------------------------------------------------------------------------------*/
+
+    /*-------------------------Never reaches this part-----------------------------*/
     /* Joins threads */
     threadJoin(tid,numthreads);
 

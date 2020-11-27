@@ -29,7 +29,7 @@ int setSockAddrUn(char *path, struct sockaddr_un *addr) {
 /**
  * Creates socket name based on a standart name plus the pid of the client.
 */
-void createSocketName(char* client_socket_name){
+void createSocketName(){
   int pid = (int) getpid();
   char socket_name[MAX_SOCKET_NAME];
   char pid_string[MAX_FILE_NAME];
@@ -47,7 +47,7 @@ void createSocketName(char* client_socket_name){
 
 int tfsCreate(char *filename, char nodeType) {
 
-  int servlen;
+  int servlen,result;
   char buffer[MAX_INPUT_SIZE];
   struct sockaddr_un serv_addr;
 
@@ -59,17 +59,17 @@ int tfsCreate(char *filename, char nodeType) {
     exit(EXIT_FAILURE);
   } 
 
-  if (recvfrom(client_sockfd, buffer, sizeof(buffer), 0, 0, 0) < 0) {
+  if (recvfrom(client_sockfd, &result, sizeof(result), 0, 0, 0) < 0) {
     perror("client: recvfrom error");
     exit(EXIT_FAILURE);
   } 
 
-  return atoi(buffer); //deve retornar aquilo que receber do servidor
+  return result; //deve retornar aquilo que receber do servidor
 }
 
 int tfsDelete(char *path) {
 
-  int servlen;
+  int servlen,result;
   char buffer[MAX_INPUT_SIZE];
   struct sockaddr_un serv_addr;
 
@@ -81,16 +81,16 @@ int tfsDelete(char *path) {
     exit(EXIT_FAILURE);
   } 
 
-  if (recvfrom(client_sockfd, buffer, sizeof(buffer), 0, 0, 0) < 0) {
+  if (recvfrom(client_sockfd, &result, sizeof(result), 0, 0, 0) < 0) {
     perror("client: recvfrom error");
     exit(EXIT_FAILURE);
   } 
 
-  return atoi(buffer); //deve retornar aquilo que receber do servidor
+  return result; //deve retornar aquilo que receber do servidor
 }
 
 int tfsMove(char *from, char *to) {
-  int servlen;
+  int servlen,result;
   char buffer[MAX_INPUT_SIZE];
   struct sockaddr_un serv_addr;
 
@@ -102,16 +102,16 @@ int tfsMove(char *from, char *to) {
     exit(EXIT_FAILURE);
   }
 
-  if (recvfrom(client_sockfd, buffer, sizeof(buffer),0,0,0) < 0){
+  if (recvfrom(client_sockfd, &result, sizeof(result),0,0,0) < 0){
     perror("client: recvfrom error");
     exit(EXIT_FAILURE);
   }
 
-  return atoi(buffer);
+  return result; //deve retornar aquilo que receber do servidor
 }
 
 int tfsLookup(char *path) {
-  int servlen;
+  int servlen,result;
   char buffer[MAX_INPUT_SIZE];
   struct sockaddr_un serv_addr;
 
@@ -123,17 +123,17 @@ int tfsLookup(char *path) {
     exit(EXIT_FAILURE);
   }
 
-  if (recvfrom(client_sockfd, buffer, sizeof(buffer),0,0,0) < 0){
+  if (recvfrom(client_sockfd, &result, sizeof(result),0,0,0) < 0){
     perror("client: recvfrom error");
     exit(EXIT_FAILURE);
   }
 
-  return atoi(buffer);
+  return result; //deve retornar aquilo que receber do servidor
 }
 
 int tfsPrint(char *file){
 
-  int servlen;
+  int servlen,result;
   char buffer[MAX_INPUT_SIZE];
   struct sockaddr_un serv_addr;
 
@@ -145,39 +145,34 @@ int tfsPrint(char *file){
     exit(EXIT_FAILURE);
   }
 
-  if (recvfrom(client_sockfd, buffer, sizeof(buffer),0,0,0) < 0){
+  if (recvfrom(client_sockfd, &result, sizeof(result),0,0,0) < 0){
     perror("client: recvfrom error");
     exit(EXIT_FAILURE);
   }
 
-  return atoi(buffer);
+  return result; //deve retornar aquilo que receber do servidor
 }
 
 int tfsMount(char * sockPath) {
-  int sockfd;
   socklen_t clilen;
   struct sockaddr_un client_addr;
-  char socket_name[MAX_SOCKET_NAME];
 
-  if ((sockfd = socket(AF_UNIX, SOCK_DGRAM, 0) ) < 0) { 
+  client_socket_name = (char*) malloc(sizeof(char)*(MAX_SOCKET_NAME+1));
+
+  if ((client_sockfd = socket(AF_UNIX, SOCK_DGRAM, 0) ) < 0) { 
     perror("client: can't open socket");
     exit(EXIT_FAILURE);
   }
   
-  createSocketName(socket_name);
+  createSocketName();
 
-  unlink(socket_name);
-  clilen = setSockAddrUn (socket_name, &client_addr);
+  unlink(client_socket_name);
+  clilen = setSockAddrUn (client_socket_name, &client_addr);
 
-  if (bind(sockfd, (struct sockaddr *) &client_addr, clilen) < 0) {
+  if (bind(client_sockfd, (struct sockaddr *) &client_addr, clilen) < 0) {
     perror("client: bind error");
     exit(EXIT_FAILURE);
   } 
-
-  /* makes it global so that other functions can use it */
-  client_sockfd = sockfd;
-  client_socket_name = socket_name;
-
   return 0;
 }
 
@@ -185,5 +180,6 @@ int tfsUnmount() {
 
   close(client_sockfd);
   unlink(client_socket_name);
+  free(client_socket_name);
   return 0;
 }
