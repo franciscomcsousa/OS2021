@@ -104,9 +104,9 @@ void *processInput() {
                     errorParse();
                 res = tfsPrint(arg1);
                 if (!res)
-                    printf("Printed tecnicofs tree\n");
+                    printf("Printed tree\n");
                 else
-                    printf("Unable to print tecnicofs tree\n");
+                    printf("Unable to print tree\n");
                 break;           
             case '#':
                 break;

@@ -51,7 +51,7 @@ int tfsCreate(char *filename, char nodeType) {
   char buffer[MAX_INPUT_SIZE];
   struct sockaddr_un serv_addr;
 
-  sprintf(buffer,"%c %s %c",'c',filename,nodeType);
+  sprintf(buffer,"c %s %c",filename,nodeType);
   servlen = setSockAddrUn(serverName, &serv_addr);
 
   if (sendto(client_sockfd, buffer, strlen(buffer)+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0) {
@@ -73,7 +73,7 @@ int tfsDelete(char *path) {
   char buffer[MAX_INPUT_SIZE];
   struct sockaddr_un serv_addr;
 
-  sprintf(buffer,"%c %s",'d',path);
+  sprintf(buffer,"d %s",path);
   servlen = setSockAddrUn(serverName, &serv_addr);
 
   if (sendto(client_sockfd, buffer, strlen(buffer)+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0) {
@@ -90,11 +90,12 @@ int tfsDelete(char *path) {
 }
 
 int tfsMove(char *from, char *to) {
+  
   int servlen,result;
   char buffer[MAX_INPUT_SIZE];
   struct sockaddr_un serv_addr;
 
-  sprintf(buffer, "%c %s %s", 'm', from,to);
+  sprintf(buffer, "m %s %s",from,to);
   servlen = setSockAddrUn(serverName, &serv_addr);  
 
   if (sendto(client_sockfd, buffer, strlen(buffer)+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0){
@@ -111,11 +112,12 @@ int tfsMove(char *from, char *to) {
 }
 
 int tfsLookup(char *path) {
+
   int servlen,result;
   char buffer[MAX_INPUT_SIZE];
   struct sockaddr_un serv_addr;
 
-  sprintf(buffer, "%c %s", 'l', path);
+  sprintf(buffer, "l %s", path);
   servlen = setSockAddrUn(serverName, &serv_addr);  
 
   if (sendto(client_sockfd, buffer, strlen(buffer)+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0){
@@ -137,7 +139,7 @@ int tfsPrint(char *file){
   char buffer[MAX_INPUT_SIZE];
   struct sockaddr_un serv_addr;
 
-  sprintf(buffer, "%c %s", 'p',file);
+  sprintf(buffer, "p %s", file);
   servlen = setSockAddrUn(serverName, &serv_addr);  
 
   if (sendto(client_sockfd, buffer, strlen(buffer)+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0){
@@ -154,9 +156,9 @@ int tfsPrint(char *file){
 }
 
 int tfsMount(char * sockPath) {
+
   socklen_t clilen;
   struct sockaddr_un client_addr;
-
   client_socket_name = (char*) malloc(sizeof(char)*(MAX_SOCKET_NAME+1));
 
   if ((client_sockfd = socket(AF_UNIX, SOCK_DGRAM, 0) ) < 0) { 
@@ -173,7 +175,7 @@ int tfsMount(char * sockPath) {
     perror("client: bind error");
     exit(EXIT_FAILURE);
   } 
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 int tfsUnmount() {
@@ -181,5 +183,5 @@ int tfsUnmount() {
   close(client_sockfd);
   unlink(client_socket_name);
   free(client_socket_name);
-  return 0;
+  return EXIT_SUCCESS;
 }

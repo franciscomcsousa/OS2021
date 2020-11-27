@@ -1,9 +1,5 @@
-c a d
-c b d
 c a/f f
-c a/g f
-c a d
-d a/f
-l a/g
-l c
-p TESTE.TXT
+c b/f f
+p TESTE5.txt
+c c/f f
+p TESTE2.txt
