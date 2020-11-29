@@ -15,6 +15,7 @@ c Paulsrolysin f
 c mesiogingival f
 c Amalfitan f
 c unwasf f
+p APAGAME6.TXT
 c s1/ d
 c s1/s2 d
 c s1/sss3 d
@@ -60,6 +61,7 @@ l outbsawl
 l mesiogingival
 l kenstledge
 l palpiform
+p APAGAME7.TXT
 l autophotometry
 l latesrocaudal
 l unreined
@@ -74,3 +76,4 @@ d Amalfitan
 d hydrant
 d Cephalophus
 d heterolysin
+p FINAL.TXT

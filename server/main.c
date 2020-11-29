@@ -20,7 +20,7 @@
 int sockfd; //server file descriptor
 
 /* necessary for print command */
-int print = 0, threadsRunning = 0;
+int print = OFF, threadsRunning = 0;
 pthread_mutex_t mutex;
 pthread_cond_t canPrint, canContinue;
 
@@ -70,8 +70,9 @@ void applyCommands(){
             pthread_cond_wait(&canContinue, &mutex); 
 
         /* keeps track of the number of threads executing a command */
-        if(input[0] != 'l')     //lookups can run concurrently with print
+        if(input[0] != 'l' && input[0] != 'p')     //lookups can run concurrently with print
             threadsRunning++; 
+        printf("started command %c \n numthreads:%d",input[0],threadsRunning);
         pthread_mutex_unlock(&mutex);
 
 
@@ -135,7 +136,7 @@ void applyCommands(){
         sendto(sockfd, &Result, sizeof(Result), 0, (struct sockaddr *)&client_addr, addrlen);
 
         pthread_mutex_lock(&mutex);
-        if(input[0] != 'l')
+        if(input[0] != 'l' && input[0] != 'p')
             threadsRunning--;
         if (threadsRunning == 0 && print == WAITING){
             pthread_cond_signal(&canPrint);
