@@ -33,12 +33,12 @@ int setSockAddrUn(char *path, struct sockaddr_un *addr) {
  * Creates socket name based on a standart name plus the pid of the client.
 */
 void createSocketName(){
-  int pid = (int) getpid();
-  char socket_name[MAX_SOCKET_NAME];
+  
   char pid_string[MAX_FILE_NAME];
+  char socket_name[MAX_SOCKET_NAME];
 
   /* converts pid from int to string */
-  sprintf(pid_string,"%d",pid);
+  sprintf(pid_string,"%d",getpid());
 
   strcpy(socket_name,CLIENT_SOCKET_NAME);
 
@@ -56,11 +56,13 @@ int tfsCreate(char *filename, char nodeType) {
   sprintf(buffer,"c %s %c",filename,nodeType);
   servlen = setSockAddrUn(serverName, &serv_addr);
 
+  /* sends command to serv_addr */
   if (sendto(client_sockfd, buffer, strlen(buffer)+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0) {
     perror("client: sendto error");
     exit(EXIT_FAILURE);
   } 
 
+  /* receive server response */
   if (recvfrom(client_sockfd, &result, sizeof(result), 0, 0, 0) < 0) {
     perror("client: recvfrom error");
     exit(EXIT_FAILURE);
@@ -78,11 +80,13 @@ int tfsDelete(char *path) {
   sprintf(buffer,"d %s",path);
   servlen = setSockAddrUn(serverName, &serv_addr);
 
+  /* sends command to serv_addr */
   if (sendto(client_sockfd, buffer, strlen(buffer)+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0) {
     perror("client: sendto error");
     exit(EXIT_FAILURE);
   } 
 
+  /* receive server response */
   if (recvfrom(client_sockfd, &result, sizeof(result), 0, 0, 0) < 0) {
     perror("client: recvfrom error");
     exit(EXIT_FAILURE);
@@ -100,11 +104,13 @@ int tfsMove(char *from, char *to) {
   sprintf(buffer, "m %s %s",from,to);
   servlen = setSockAddrUn(serverName, &serv_addr);  
 
+  /* sends command to serv_addr */
   if (sendto(client_sockfd, buffer, strlen(buffer)+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0){
     perror("client: sendto error");
     exit(EXIT_FAILURE);
   }
 
+  /* receive server response */
   if (recvfrom(client_sockfd, &result, sizeof(result),0,0,0) < 0){
     perror("client: recvfrom error");
     exit(EXIT_FAILURE);
@@ -122,11 +128,13 @@ int tfsLookup(char *path) {
   sprintf(buffer, "l %s", path);
   servlen = setSockAddrUn(serverName, &serv_addr);  
 
+  /* sends command to serv_addr */
   if (sendto(client_sockfd, buffer, strlen(buffer)+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0){
     perror("client: sendto error");
     exit(EXIT_FAILURE);
   }
 
+  /* receive server response */
   if (recvfrom(client_sockfd, &result, sizeof(result),0,0,0) < 0){
     perror("client: recvfrom error");
     exit(EXIT_FAILURE);
@@ -144,11 +152,13 @@ int tfsPrint(char *file){
   sprintf(buffer, "p %s", file);
   servlen = setSockAddrUn(serverName, &serv_addr);  
 
+  /* sends command to serv_addr */
   if (sendto(client_sockfd, buffer, strlen(buffer)+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0){
     perror("client: sendto error");
     exit(EXIT_FAILURE);
   }
 
+  /* receive server response */
   if (recvfrom(client_sockfd, &result, sizeof(result),0,0,0) < 0){
     perror("client: recvfrom error");
     exit(EXIT_FAILURE);

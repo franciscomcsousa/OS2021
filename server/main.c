@@ -72,7 +72,6 @@ void applyCommands(){
         /* keeps track of the number of threads executing a command */
         if(input[0] != 'l' && input[0] != 'p')     //lookups can run concurrently with print
             threadsRunning++; 
-        printf("started command %c \n numthreads:%d",input[0],threadsRunning);
         pthread_mutex_unlock(&mutex);
 
 
