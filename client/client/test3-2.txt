@@ -1,0 +1,76 @@
+# 30 creates, 50 lookups, 5 deletes
+c draspery f
+c ergal f
+c cypseline f
+c telfer f
+c sasccharimetrical f
+c reluctantly f
+c Cephalophus f
+c busted f
+c dalle f
+c hydsrant f
+c Ceramium f
+c coheritage f
+c Paulsrolysin f
+c mesiogingival f
+c Amalfitan f
+c unwasf f
+c s1/ d
+c s1/s2 d
+c s1/sss3 d
+c s1/s2/s4 f
+c s1/s2/s5 f
+c besngan f
+c grapelet f
+c therology f
+c autophotometry f
+c nonsiry f
+l coheritage
+l expiry
+l cohsonic
+l benumb
+l judgmatic
+l trilingual
+l dumsmyweed
+l denaturization
+l suppleness
+l tensssontography
+l autophotometry
+l busted
+l outbawl
+l mess
+p APAGAME.txt
+l benumb
+l tubercularize
+l gaslighting
+l cohsseritage
+l exspiry
+l coheritage
+l aphonic
+l benumb
+l judgmatic
+l trilingual
+l dummyweed
+l denaturization
+l suppleness
+l tenosntography
+l ausstophotometry
+l busted
+l outbsawl
+l mesiogingival
+l kenstledge
+l palpiform
+l autophotometry
+l latesrocaudal
+l unreined
+p APAGAME1.txt
+l heterolysin
+l grapelet
+l benumb
+l tubesrcularize
+l gasslighting
+d busted
+d Amalfitan
+d hydrant
+d Cephalophus
+d heterolysin

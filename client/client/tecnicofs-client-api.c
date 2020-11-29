@@ -66,7 +66,7 @@ int tfsCreate(char *filename, char nodeType) {
     exit(EXIT_FAILURE);
   } 
 
-  return result; //deve retornar aquilo que receber do servidor
+  return result;
 }
 
 int tfsDelete(char *path) {
@@ -88,7 +88,7 @@ int tfsDelete(char *path) {
     exit(EXIT_FAILURE);
   } 
 
-  return result; //deve retornar aquilo que receber do servidor
+  return result;
 }
 
 int tfsMove(char *from, char *to) {
@@ -110,7 +110,7 @@ int tfsMove(char *from, char *to) {
     exit(EXIT_FAILURE);
   }
 
-  return result; //deve retornar aquilo que receber do servidor
+  return result;
 }
 
 int tfsLookup(char *path) {
@@ -132,7 +132,7 @@ int tfsLookup(char *path) {
     exit(EXIT_FAILURE);
   }
 
-  return result; //deve retornar aquilo que receber do servidor
+  return result;
 }
 
 int tfsPrint(char *file){
@@ -154,7 +154,7 @@ int tfsPrint(char *file){
     exit(EXIT_FAILURE);
   }
 
-  return result; //deve retornar aquilo que receber do servidor
+  return result;
 }
 
 int tfsMount(char * sockPath) {
@@ -163,16 +163,19 @@ int tfsMount(char * sockPath) {
   struct sockaddr_un client_addr;
   client_socket_name = (char*) malloc(sizeof(char)*(MAX_SOCKET_NAME+1));
 
+  /* creates a socket of domain UNIX and type DATAGRAM */
   if ((client_sockfd = socket(AF_UNIX, SOCK_DGRAM, 0) ) < 0) { 
     perror("client: can't open socket");
     exit(EXIT_FAILURE);
   }
   
   createSocketName();
-
   unlink(client_socket_name);
+
+  /* clears and set the socket address */
   clilen = setSockAddrUn (client_socket_name, &client_addr);
 
+  /* binds a name to the socket, this name is specified by the server_addr */
   if (bind(client_sockfd, (struct sockaddr *) &client_addr, clilen) < 0) {
     perror("client: bind error");
     exit(EXIT_FAILURE);
