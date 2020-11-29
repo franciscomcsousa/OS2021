@@ -1,5 +1,0 @@
-c a/f f
-c b/f f
-p TESTE5.txt
-c c/f f
-p TESTE2.txt

@@ -10,16 +10,19 @@ int client_sockfd;
 char* client_socket_name;
 extern char* serverName;
 
-/*----------------------------------------------------------------------AUX-FUNCTIONS------------------------------------------------------------------------------------------------*/
 /**
- * Clears socket address.
+ * Resets and set socket address.
+ * @param path: socket name
+ * @param addr: socket address
 */
 int setSockAddrUn(char *path, struct sockaddr_un *addr) {
 
   if (addr == NULL)
     return 0;
 
+  /* set addr bytes to zero */
   bzero((char *)addr, sizeof(struct sockaddr_un));
+
   addr->sun_family = AF_UNIX;
   strcpy(addr->sun_path, path);
 
@@ -43,7 +46,6 @@ void createSocketName(){
   strcpy(client_socket_name,strcat(socket_name,pid_string));
 }
 
-/*----------------------------------------------------------------------API-FUNCTIONS------------------------------------------------------------------------------------------------*/
 
 int tfsCreate(char *filename, char nodeType) {
 
