@@ -111,7 +111,6 @@ void applyCommands(){
                 printf("Print tree\n");
 
                 pthread_mutex_lock(&mutex);
-
                 /* sets print to WAITING to prevent threads from starting to execute more commands */
                 print = WAITING;
                 /* waits until all threads have finished before starting printing */
@@ -123,7 +122,6 @@ void applyCommands(){
 
                 pthread_cond_broadcast(&canContinue);
                 pthread_mutex_unlock(&mutex);
-
                 break;
 
             default: { /* error */
@@ -135,8 +133,10 @@ void applyCommands(){
         sendto(sockfd, &Result, sizeof(Result), 0, (struct sockaddr *)&client_addr, addrlen);
 
         pthread_mutex_lock(&mutex);
+        /* keeps track of the number of threads executing a command */
         if(input[0] != 'l' && input[0] != 'p')
             threadsRunning--;
+            
         if (threadsRunning == 0 && print == WAITING){
             pthread_cond_signal(&canPrint);
         }
