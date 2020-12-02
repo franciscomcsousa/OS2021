@@ -108,15 +108,14 @@ void applyCommands(){
                 Result = move(path,pathdest);
                 break;
             case 'p':
-                printf("Print tree\n");
-
                 pthread_mutex_lock(&mutex);
                 /* sets print to WAITING to prevent threads from starting to execute more commands */
                 print = WAITING;
                 /* waits until all threads have finished before starting printing */
-                while (threadsRunning > 1)
+                while (threadsRunning > 0)
                     pthread_cond_wait(&canPrint, &mutex);
-    
+                    
+                printf("Print tree\n");
                 Result = print_tecnicofs_tree(name);
                 print = OFF;
 
