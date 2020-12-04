@@ -14,8 +14,6 @@
 #include <sys/stat.h>
 
 #define MAX_INPUT_SIZE 100
-#define WAITING 1
-#define OFF 0
 
 int sockfd; //server file descriptor
 
