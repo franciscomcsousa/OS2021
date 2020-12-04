@@ -64,8 +64,8 @@ void applyCommands(){
             exit(EXIT_FAILURE);
         }
 
-        /* if prints command is waiting to be executed, doesnt allow threads to start other commands */
         pthread_mutex_lock(&mutex);
+        /* if prints command is waiting to be executed, doesnt allow threads to start other commands */
         while (print == WAITING)
             pthread_cond_wait(&canContinue, &mutex); 
 
@@ -111,7 +111,7 @@ void applyCommands(){
                 pthread_mutex_lock(&mutex);
                 /* sets print to WAITING to prevent threads from starting to execute more commands */
                 print = WAITING;
-                /* waits until all threads have finished before starting printing */
+                /* waits until all running threads have finished their commands */
                 while (threadsRunning > 0)
                     pthread_cond_wait(&canPrint, &mutex);
                     
