@@ -40,7 +40,7 @@ l autophotometry
 l busted
 l outbawl
 l mess
-p APAGAME.txt
+p APAGAME11.txt
 l benumb
 l tubercularize
 l gaslighting
@@ -65,7 +65,7 @@ p APAGAME7.TXT
 l autophotometry
 l latesrocaudal
 l unreined
-p APAGAME1.txt
+p APAGAME12.txt
 l heterolysin
 l grapelet
 l benumb

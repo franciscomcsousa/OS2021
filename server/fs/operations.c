@@ -616,6 +616,9 @@ void unlock(int* array, int counter){
  * @param fp: pointer to file
 */
 int print_tecnicofs_tree(char *file){
+
+	inode_lock(FS_ROOT,"w");
+
 	FILE* fp;
 
 	fp = fopen(file,"w");
@@ -623,7 +626,8 @@ int print_tecnicofs_tree(char *file){
 		return FAIL;
 
 	inode_print_tree(fp, FS_ROOT, "");
-
 	fclose(fp);
+	
+	inode_unlock(FS_ROOT);
 	return SUCCESS;
 }

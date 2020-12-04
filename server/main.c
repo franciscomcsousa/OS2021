@@ -40,10 +40,10 @@ void applyCommands(){
     while (1){
 
         /* reads bytes into input through sockfd and returns the number of bytes read */
-        c = recvfrom(sockfd, input, sizeof(input)-1, 0,(struct sockaddr *)&client_addr, &addrlen);
-
-        if (c<=0)
+        if ((c = recvfrom(sockfd, input, sizeof(input)-1, 0,(struct sockaddr *)&client_addr, &addrlen)) <= 0){
+            perror("server: recvfrom error");
             break;
+        }
 
         /* always sets last char of input to '\0' */
         input[c]='\0';
@@ -63,17 +63,6 @@ void applyCommands(){
             fprintf(stderr, "Error: invalid command in Queue\n");
             exit(EXIT_FAILURE);
         }
-
-        pthread_mutex_lock(&mutex);
-        /* if prints command is waiting to be executed, doesnt allow threads to start other commands */
-        while (print == WAITING)
-            pthread_cond_wait(&canContinue, &mutex); 
-
-        /* keeps track of the number of threads executing a command */
-        if(input[0] != 'l' && input[0] != 'p')     //lookups can run concurrently with print
-            threadsRunning++; 
-        pthread_mutex_unlock(&mutex);
-
 
         int Result;
         switch (token) {
@@ -108,19 +97,8 @@ void applyCommands(){
                 Result = move(path,pathdest);
                 break;
             case 'p':
-                pthread_mutex_lock(&mutex);
-                /* sets print to WAITING to prevent threads from starting to execute more commands */
-                print = WAITING;
-                /* waits until all running threads have finished their commands */
-                while (threadsRunning > 0)
-                    pthread_cond_wait(&canPrint, &mutex);
-                    
                 printf("Print tree\n");
                 Result = print_tecnicofs_tree(name);
-                print = OFF;
-
-                pthread_cond_broadcast(&canContinue);
-                pthread_mutex_unlock(&mutex);
                 break;
 
             default: { /* error */
@@ -129,17 +107,9 @@ void applyCommands(){
             }
         }
         /* sends bytes of Result on sockfd to client_addr */
-        sendto(sockfd, &Result, sizeof(Result), 0, (struct sockaddr *)&client_addr, addrlen);
-
-        pthread_mutex_lock(&mutex);
-        /* keeps track of the number of threads executing a command */
-        if(input[0] != 'l' && input[0] != 'p')
-            threadsRunning--;
-            
-        if (threadsRunning == 0 && print == WAITING){
-            pthread_cond_signal(&canPrint);
+        if (sendto(sockfd, &Result, sizeof(Result), 0, (struct sockaddr *)&client_addr, addrlen) < 0){
+            perror("server: sendto error");
         }
-        pthread_mutex_unlock(&mutex);
     }
 }
 

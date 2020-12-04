@@ -76,7 +76,7 @@ l autophotometry
 l laterocaudal
 l unreined
 l heterolysin
-p APAGAME8.TXT
+p APAGAME13.TXT
 l grapelet
 l benumb
 l tubercularize
