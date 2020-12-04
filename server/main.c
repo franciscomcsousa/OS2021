@@ -19,11 +19,6 @@
 
 int sockfd; //server file descriptor
 
-/* necessary for print command */
-int print = OFF, threadsRunning = 0;
-pthread_mutex_t mutex;
-pthread_cond_t canPrint, canContinue;
-
 void errorParse(){
     fprintf(stderr, "Error: command invalid\n");
     exit(EXIT_FAILURE);
@@ -216,33 +211,12 @@ void initSocket(char* socket_name){
     }
 }
 
-/**
- * Inicializes mutex and conditional variables.
-*/
-void init_locks(){
-    pthread_mutex_init(&mutex,NULL);
-    pthread_cond_init(&canPrint,NULL);
-    pthread_cond_init(&canContinue,NULL);
-}
-
-/**
- * Destroys mutex and conditional variables.
-*/
-void destroy_locks(){
-    pthread_mutex_destroy(&mutex);
-    pthread_cond_destroy(&canPrint);
-    pthread_cond_destroy(&canContinue);
-}
-
 int main(int argc, char* argv[]) {
 
     int numthreads = atoi(argv[1]);
 
     /* Verifies given input */
     verifyInput(argc, argv);
-
-    /* Init locks */
-    init_locks();
 
     /* Init filesystem and locks */
     init_fs();
@@ -262,7 +236,6 @@ int main(int argc, char* argv[]) {
     /* Release allocated memory and destroys locks */
     free(tid);
     destroy_fs();
-    destroy_locks();
 
     /* Closes and unlinks socket */
     close(sockfd);
