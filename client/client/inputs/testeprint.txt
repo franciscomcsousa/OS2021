@@ -1,3 +1,0 @@
-c a d
-c b d
-p APAGA.txt
