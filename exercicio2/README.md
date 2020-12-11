@@ -1,8 +1,7 @@
 # Exercicio 2
 
-Este 2º exercício pretende estender a solução desenvolvida no 1º exercício com duas otimizações
-importantes e o suporte a uma operação nova.
-Todos os requisitos abaixo devem ser suportados sem recorrer a espera ativa, tanto quanto possível.
+Este 2º exercício pretende estender a solução desenvolvida no 1º exercício com duas otimizações importantes, sincronização fina e execução incremental de comando atraves de um buffer circular e o suporte a uma operação nova (move).
 
-Além dos mutexes (pthread_mutex_t) e trincos de leitura-escrita (pthread_rwlock), a solução pode
-recorrer a variáveis de condição (pthread_cond_t).
+Para testar o programa criou-se um script que recebe quatro argumentos
+
+`./runTests inputdir outputdir maxthreads`
