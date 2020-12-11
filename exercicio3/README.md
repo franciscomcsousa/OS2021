@@ -41,3 +41,9 @@ o(s) seus(s) argumentos(s), sendo o formato dessas strings aquele que foi defini
 enunciados anteriores para cada operação do TecnicoFS.
 - A resposta consiste no inteiro que é devolvido pela operação invocada (o valor do inteiro a
 enviar ao cliente deve ser o mesmo que já era devolvido nos projetos anteriores). 
+
+## 2. Nova operação ‘p’
+
+O TecnicoFS deve passar a suportar uma nova operação que imprime o seu conteúdo atual (através
+da função já existente print_tecnicofs_tree) para um ficheiro de saída indicado como único argumento
+da operação
