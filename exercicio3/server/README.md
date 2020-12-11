@@ -4,4 +4,4 @@ Server side
 ## How to run
 Execute the following command:
 
-`./tecnicofs <server_socket_name> <number_of_threads>`
+`./tecnicofs <number_of_threads> <server_socket_name>`
